@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { PluginWarningPayload } from "../../src/sdk/types.js";
+import type { PluginWarningPayload } from "../../src/index.js";
 
 describe("sdk types", () => {
   it("supports confidence mode and non-blocking contract", () => {
