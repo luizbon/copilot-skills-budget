@@ -1,0 +1,1 @@
+{"version":3,"file":"skill-index.js","sourceRoot":"","sources":["../src/skill-index.ts"],"names":[],"mappings":"AAMA,MAAM,UAAU,mBAAmB,CAAC,EAClC,WAAW,EACX,SAAS,EACT,OAAO,GACoB;IAC3B,OAAO,GAAG,WAAW,IAAI,EAAE,KAAK,SAAS,IAAI,EAAE,EAAE,CAAC,IAAI,EAAE,CAAC,KAAK,CAAC,CAAC,EAAE,OAAO,CAAC,CAAC;AAC7E,CAAC"}
