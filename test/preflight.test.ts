@@ -20,6 +20,7 @@ describe("runSkillsBudgetPreflight", () => {
       ],
     });
 
+    expect(result.confidence).toBe("estimated");
     expect(result.countedSkills).toBe(1);
   });
 });

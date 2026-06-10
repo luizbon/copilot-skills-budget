@@ -12,6 +12,7 @@ describe("release smoke", () => {
       contextWindowTokens: 200_000,
       skills: [{ name: "test-skill", description: "A test skill" }],
     });
+    expect(result).toHaveProperty("confidence", "estimated");
     expect(result).toHaveProperty("countedSkills", 1);
     expect(result).toHaveProperty("warning");
     expect(result).toHaveProperty("contextPayload");
