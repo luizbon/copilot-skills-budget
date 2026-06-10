@@ -17,6 +17,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "pretest:release": "npm run build",
     "test:release": "vitest run --config vitest.release.config.ts"
   },
   "devDependencies": {
