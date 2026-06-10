@@ -4,6 +4,7 @@ import { buildSkillIndexText } from "./skill-index";
 import { renderWarning } from "./warning";
 
 const DEFAULT_SKILL_TEXT_CHAR_CAP = 1536;
+const DEFAULT_WARNING_THRESHOLD_PCT = 1;
 
 export type PreflightSkill = {
   name: string;
@@ -14,7 +15,9 @@ export type PreflightSkill = {
 
 export type PreflightInput = {
   contextWindowTokens: number;
-  thresholdPct: number;
+  thresholdPct?: number;
+  skillsContextWarningThresholdPct?: number;
+  skillsDescriptionCharCap?: number;
   skills: PreflightSkill[];
 };
 
@@ -29,6 +32,9 @@ function estimateTokensFromText(text: string): number {
 }
 
 export function runSkillsBudgetPreflight(input: PreflightInput): PreflightResult {
+  const thresholdPct =
+    input.skillsContextWarningThresholdPct ?? input.thresholdPct ?? DEFAULT_WARNING_THRESHOLD_PCT;
+  const skillTextCharCap = input.skillsDescriptionCharCap ?? DEFAULT_SKILL_TEXT_CHAR_CAP;
   const countedSkills = input.skills.filter((skill) => !skill.disableModelInvocation);
 
   const budgetSkills = countedSkills.map((skill) => ({
@@ -37,14 +43,14 @@ export function runSkillsBudgetPreflight(input: PreflightInput): PreflightResult
       buildSkillIndexText({
         description: skill.description,
         whenToUse: skill.whenToUse,
-        charCap: DEFAULT_SKILL_TEXT_CHAR_CAP,
+        charCap: skillTextCharCap,
       }),
     ),
   }));
 
   const budget = evaluateBudget({
     contextWindowTokens: input.contextWindowTokens,
-    thresholdPct: input.thresholdPct,
+    thresholdPct,
     skills: budgetSkills,
   });
 
@@ -53,15 +59,16 @@ export function runSkillsBudgetPreflight(input: PreflightInput): PreflightResult
     warning: budget.isOverThreshold
       ? renderWarning({
           usagePct: budget.usagePct,
-          thresholdPct: input.thresholdPct,
+          thresholdPct,
           topContributors: budget.topContributors,
         })
       : null,
     contextPayload: buildContextReportPayload({
       totalTokens: budget.totalTokens,
       usagePct: budget.usagePct,
-      thresholdPct: input.thresholdPct,
+      thresholdPct,
       isOverThreshold: budget.isOverThreshold,
+      blocksExecution: false,
       topContributors: budget.topContributors,
     }),
   };

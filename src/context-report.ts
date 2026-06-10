@@ -5,6 +5,7 @@ export type BuildContextReportPayloadInput = {
   usagePct: number;
   thresholdPct: number;
   isOverThreshold: boolean;
+  blocksExecution?: boolean;
   topContributors: WarningContributor[];
 };
 
@@ -14,6 +15,7 @@ export type ContextReportPayload = {
   usagePct: number;
   thresholdPct: number;
   isOverThreshold: boolean;
+  blocksExecution: boolean;
   topContributors: WarningContributor[];
 };
 
@@ -26,6 +28,7 @@ export function buildContextReportPayload(
     usagePct: input.usagePct,
     thresholdPct: input.thresholdPct,
     isOverThreshold: input.isOverThreshold,
+    blocksExecution: input.blocksExecution ?? false,
     topContributors: input.topContributors,
   };
 }

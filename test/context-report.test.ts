@@ -16,6 +16,7 @@ describe("buildContextReportPayload", () => {
       usagePct: 1.42,
       thresholdPct: 1,
       isOverThreshold: true,
+      blocksExecution: false,
       totalTokens: 2840,
     });
     expect(payload.topContributors[0]?.name).toBe("plugin:big-skill");
