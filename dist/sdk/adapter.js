@@ -1,8 +1,8 @@
 export function createSdkAdapter(deps) {
     return {
-        publishWarning(payload) {
-            deps.notify(payload.message);
-            deps.setContextNode("skills-budget", payload);
+        publishWarning(warningPayload, contextPayload) {
+            deps.notify(warningPayload.message);
+            deps.setContextNode("skills-budget", contextPayload);
         },
     };
 }

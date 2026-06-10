@@ -1,4 +1,5 @@
 import type { PluginWarningPayload } from "./types.js";
+import type { ContextReportPayload } from "../context-report.js";
 
 export interface SdkAdapterDeps {
   notify: (message: string) => void;
@@ -6,14 +7,14 @@ export interface SdkAdapterDeps {
 }
 
 export interface SdkAdapter {
-  publishWarning: (payload: PluginWarningPayload) => void;
+  publishWarning: (warningPayload: PluginWarningPayload, contextPayload: ContextReportPayload) => void;
 }
 
 export function createSdkAdapter(deps: SdkAdapterDeps): SdkAdapter {
   return {
-    publishWarning(payload: PluginWarningPayload) {
-      deps.notify(payload.message);
-      deps.setContextNode("skills-budget", payload);
+    publishWarning(warningPayload: PluginWarningPayload, contextPayload: ContextReportPayload) {
+      deps.notify(warningPayload.message);
+      deps.setContextNode("skills-budget", contextPayload);
     },
   };
 }

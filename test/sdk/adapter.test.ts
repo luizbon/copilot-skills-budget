@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { createSdkAdapter } from "skills-context-budget-guard/sdk/adapter";
 import type { PluginWarningPayload } from "skills-context-budget-guard/sdk/types";
+import type { ContextReportPayload } from "../../src/context-report";
 
 describe("createSdkAdapter", () => {
   it("publishWarning sends warning message via notify and context payload via setContextNode", () => {
@@ -21,12 +22,22 @@ describe("createSdkAdapter", () => {
       message: "Test warning message",
     };
 
-    adapter.publishWarning(payload);
+    const contextPayload: ContextReportPayload = {
+      kind: "skills-context-budget",
+      totalTokens: 2500,
+      usagePct: 1.5,
+      thresholdPct: 1,
+      isOverThreshold: true,
+      blocksExecution: false,
+      topContributors: [{ name: "test-skill", tokens: 1000 }],
+    };
+
+    adapter.publishWarning(payload, contextPayload);
 
     expect(notifyFn).toHaveBeenCalledOnce();
     expect(notifyFn).toHaveBeenCalledWith(payload.message);
 
     expect(setContextNodeFn).toHaveBeenCalledOnce();
-    expect(setContextNodeFn).toHaveBeenCalledWith("skills-budget", payload);
+    expect(setContextNodeFn).toHaveBeenCalledWith("skills-budget", contextPayload);
   });
 });
