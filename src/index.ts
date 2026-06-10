@@ -1,6 +1,6 @@
-export { runSkillsBudgetPreflight } from "./preflight";
+export { runSkillsBudgetPreflight } from "./preflight.js";
 
-export { evaluateBudget } from "./budget-guard";
-export { buildSkillIndexText } from "./skill-index";
-export { renderWarning } from "./warning";
-export { buildContextReportPayload } from "./context-report";
+export { evaluateBudget } from "./budget-guard.js";
+export { buildSkillIndexText } from "./skill-index.js";
+export { renderWarning } from "./warning.js";
+export { buildContextReportPayload } from "./context-report.js";

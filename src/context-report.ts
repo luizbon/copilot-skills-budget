@@ -1,4 +1,4 @@
-import type { WarningContributor } from "./warning";
+import type { WarningContributor } from "./warning.js";
 
 export type BuildContextReportPayloadInput = {
   totalTokens: number;

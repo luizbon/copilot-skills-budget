@@ -1,0 +1,1 @@
+{"version":3,"file":"skill-index.d.ts","sourceRoot":"","sources":["../src/skill-index.ts"],"names":[],"mappings":"AAAA,MAAM,MAAM,0BAA0B,GAAG;IACvC,WAAW,CAAC,EAAE,MAAM,CAAC;IACrB,SAAS,CAAC,EAAE,MAAM,CAAC;IACnB,OAAO,EAAE,MAAM,CAAC;CACjB,CAAC;AAEF,wBAAgB,mBAAmB,CAAC,EAClC,WAAW,EACX,SAAS,EACT,OAAO,GACR,EAAE,0BAA0B,GAAG,MAAM,CAErC"}

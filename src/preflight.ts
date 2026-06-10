@@ -1,7 +1,7 @@
-import { evaluateBudget } from "./budget-guard";
-import { buildContextReportPayload } from "./context-report";
-import { buildSkillIndexText } from "./skill-index";
-import { renderWarning } from "./warning";
+import { evaluateBudget } from "./budget-guard.js";
+import { buildContextReportPayload } from "./context-report.js";
+import { buildSkillIndexText } from "./skill-index.js";
+import { renderWarning } from "./warning.js";
 
 const DEFAULT_SKILL_TEXT_CHAR_CAP = 1536;
 const DEFAULT_WARNING_THRESHOLD_PCT = 1;
