@@ -33,3 +33,8 @@ const result = runSkillsBudgetPreflight({
 - `totalTokens`, `usagePct`, `thresholdPct`, `isOverThreshold`
 - `topContributors`
 - `blocksExecution: false` (warning flow is non-blocking by design)
+
+## Changelog
+
+### Added
+- Startup warning for skill description context over configurable threshold.
