@@ -1,6 +1,6 @@
 export type BuildSkillIndexTextOptions = {
-  description: string;
-  whenToUse: string;
+  description?: string;
+  whenToUse?: string;
   charCap: number;
 };
 
@@ -9,5 +9,5 @@ export function buildSkillIndexText({
   whenToUse,
   charCap,
 }: BuildSkillIndexTextOptions): string {
-  return `${description}\n${whenToUse}`.slice(0, charCap);
+  return `${description ?? ""}\n${whenToUse ?? ""}`.trim().slice(0, charCap);
 }
