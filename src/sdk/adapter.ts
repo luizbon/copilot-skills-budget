@@ -13,8 +13,13 @@ export interface SdkAdapter {
 export function createSdkAdapter(deps: SdkAdapterDeps): SdkAdapter {
   return {
     publishWarning(warningPayload: PluginWarningPayload, contextPayload: ContextReportPayload) {
-      deps.notify(warningPayload.message);
-      deps.setContextNode("skills-budget", contextPayload);
+      try {
+        deps.notify(warningPayload.message);
+      } catch {}
+
+      try {
+        deps.setContextNode("skills-budget", contextPayload);
+      } catch {}
     },
   };
 }
