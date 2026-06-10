@@ -1,6 +1,4 @@
-export function runSkillsBudgetPreflight(): null {
-  return null;
-}
+export { runSkillsBudgetPreflight } from "./preflight";
 
 export { evaluateBudget } from "./budget-guard";
 export { buildSkillIndexText } from "./skill-index";
