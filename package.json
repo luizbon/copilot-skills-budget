@@ -13,6 +13,10 @@
     "./sdk/types": {
       "import": "./dist/sdk/types.js",
       "types": "./dist/sdk/types.d.ts"
+    },
+    "./sdk/adapter": {
+      "import": "./dist/sdk/adapter.js",
+      "types": "./dist/sdk/adapter.d.ts"
     }
   },
   "scripts": {

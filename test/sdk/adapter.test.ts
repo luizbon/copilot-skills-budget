@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { createSdkAdapter } from "../../src/sdk/adapter";
-import type { PluginWarningPayload } from "../../src/sdk/types";
+import { createSdkAdapter } from "skills-context-budget-guard/sdk/adapter";
+import type { PluginWarningPayload } from "skills-context-budget-guard/sdk/types";
 
 describe("createSdkAdapter", () => {
   it("publishWarning sends warning message via notify and context payload via setContextNode", () => {

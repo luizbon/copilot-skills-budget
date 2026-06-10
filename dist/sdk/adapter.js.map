@@ -1,0 +1,1 @@
+{"version":3,"file":"adapter.js","sourceRoot":"","sources":["../../src/sdk/adapter.ts"],"names":[],"mappings":"AAWA,MAAM,UAAU,gBAAgB,CAAC,IAAoB;IACnD,OAAO;QACL,cAAc,CAAC,OAA6B;YAC1C,IAAI,CAAC,MAAM,CAAC,OAAO,CAAC,OAAO,CAAC,CAAC;YAC7B,IAAI,CAAC,cAAc,CAAC,eAAe,EAAE,OAAO,CAAC,CAAC;QAChD,CAAC;KACF,CAAC;AACJ,CAAC"}
