@@ -3,6 +3,7 @@ import { runBudgetGuard, type BudgetGuardMode, type BudgetGuardResult, type Budg
 import type { PluginWarningPayload } from "./types.js";
 
 export interface SkillsBudgetPluginDeps extends SdkAdapterDeps {
+  supportsFullSkillApi?: boolean;
   contextWindowTokens: number;
   thresholdPct?: number;
   skillsContextWarningThresholdPct?: number;
@@ -17,10 +18,12 @@ export interface SkillsBudgetPlugin {
 
 export function createSkillsBudgetPlugin(deps: SkillsBudgetPluginDeps): SkillsBudgetPlugin {
   const adapter = createSdkAdapter(deps);
+  let startupResult: BudgetGuardResult | null = null;
 
   function run(mode: BudgetGuardMode): BudgetGuardResult {
     const result = runBudgetGuard({
       mode,
+      supportsFullSkillApi: deps.supportsFullSkillApi,
       contextWindowTokens: deps.contextWindowTokens,
       thresholdPct: deps.thresholdPct,
       skillsContextWarningThresholdPct: deps.skillsContextWarningThresholdPct,
@@ -47,7 +50,16 @@ export function createSkillsBudgetPlugin(deps: SkillsBudgetPluginDeps): SkillsBu
   }
 
   return {
-    onStartup: () => run("startup"),
-    onFirstRequest: () => run("firstRequest"),
+    onStartup: () => {
+      startupResult = run("startup");
+      return startupResult;
+    },
+    onFirstRequest: () => {
+      if (deps.supportsFullSkillApi === false) {
+        return startupResult ?? run("startup");
+      }
+
+      return run("firstRequest");
+    },
   };
 }

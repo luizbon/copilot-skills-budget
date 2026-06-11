@@ -15,6 +15,7 @@ export type BudgetGuardSkill = {
 
 export type BudgetGuardInput = {
   mode: BudgetGuardMode;
+  supportsFullSkillApi?: boolean;
   contextWindowTokens: number;
   thresholdPct?: number;
   skillsContextWarningThresholdPct?: number;
@@ -26,17 +27,21 @@ export type BudgetGuardResult = {
   confidence: ConfidenceMode;
   countedSkills: number;
   warning: string | null;
+  compatibilityNote?: string | null;
   contextPayload: ReturnType<typeof buildContextReportPayload>;
 };
 
 const DEFAULT_SKILL_TEXT_CHAR_CAP = 1536;
 const DEFAULT_WARNING_THRESHOLD_PCT = 1;
+const FULL_SKILL_API_UNAVAILABLE_NOTE =
+  "full skill API unavailable; staying in estimate-only mode";
 
 function estimateTokensFromText(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
 export function runBudgetGuard(input: BudgetGuardInput): BudgetGuardResult {
+  const supportsFullSkillApi = input.supportsFullSkillApi !== false;
   const thresholdPct =
     input.skillsContextWarningThresholdPct ?? input.thresholdPct ?? DEFAULT_WARNING_THRESHOLD_PCT;
   const skillTextCharCap = input.skillsDescriptionCharCap ?? DEFAULT_SKILL_TEXT_CHAR_CAP;
@@ -60,7 +65,7 @@ export function runBudgetGuard(input: BudgetGuardInput): BudgetGuardResult {
   });
 
   return {
-    confidence: input.mode === "startup" ? "estimated" : "full",
+    confidence: input.mode === "firstRequest" && supportsFullSkillApi ? "full" : "estimated",
     countedSkills: countedSkills.length,
     warning: budget.isOverThreshold
       ? renderWarning({
@@ -69,6 +74,7 @@ export function runBudgetGuard(input: BudgetGuardInput): BudgetGuardResult {
           topContributors: budget.topContributors,
         })
       : null,
+    compatibilityNote: supportsFullSkillApi ? null : FULL_SKILL_API_UNAVAILABLE_NOTE,
     contextPayload: buildContextReportPayload({
       totalTokens: budget.totalTokens,
       usagePct: budget.usagePct,
