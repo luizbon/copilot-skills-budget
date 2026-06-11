@@ -56,7 +56,8 @@ export function createSkillsBudgetPlugin(deps: SkillsBudgetPluginDeps): SkillsBu
     },
     onFirstRequest: () => {
       if (deps.supportsFullSkillApi === false) {
-        return startupResult ?? run("startup");
+        startupResult ??= run("startup");
+        return startupResult;
       }
 
       return run("firstRequest");
