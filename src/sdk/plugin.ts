@@ -20,8 +20,8 @@ export function createSkillsBudgetPlugin(deps: SkillsBudgetPluginDeps): SkillsBu
   const adapter = createSdkAdapter(deps);
   let startupResult: BudgetGuardResult | null = null;
 
-  function run(mode: BudgetGuardMode): BudgetGuardResult {
-    const result = runBudgetGuard({
+  function compute(mode: BudgetGuardMode): BudgetGuardResult {
+    return runBudgetGuard({
       mode,
       supportsFullSkillApi: deps.supportsFullSkillApi,
       contextWindowTokens: deps.contextWindowTokens,
@@ -30,7 +30,9 @@ export function createSkillsBudgetPlugin(deps: SkillsBudgetPluginDeps): SkillsBu
       skillsDescriptionCharCap: deps.skillsDescriptionCharCap,
       skills: deps.skills,
     });
+  }
 
+  function publish(result: BudgetGuardResult): BudgetGuardResult {
     adapter.publishContext(result.contextPayload);
 
     if (result.warning) {
@@ -51,16 +53,22 @@ export function createSkillsBudgetPlugin(deps: SkillsBudgetPluginDeps): SkillsBu
 
   return {
     onStartup: () => {
-      startupResult = run("startup");
-      return startupResult;
+      if (!startupResult) {
+        startupResult = compute("startup");
+      }
+      return publish(startupResult);
     },
     onFirstRequest: () => {
       if (deps.supportsFullSkillApi === false) {
-        startupResult ??= run("startup");
-        return startupResult;
+        // Compat mode: compute once, re-publish the cached result on each hook call
+        // so adapter call semantics are consistent regardless of hook invocation order.
+        if (!startupResult) {
+          startupResult = compute("startup");
+        }
+        return publish(startupResult);
       }
 
-      return run("firstRequest");
+      return publish(compute("firstRequest"));
     },
   };
 }
