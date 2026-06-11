@@ -17,6 +17,10 @@
     "./sdk/adapter": {
       "import": "./dist/sdk/adapter.js",
       "types": "./dist/sdk/adapter.d.ts"
+    },
+    "./sdk/plugin": {
+      "import": "./dist/sdk/plugin.js",
+      "types": "./dist/sdk/plugin.d.ts"
     }
   },
   "scripts": {
