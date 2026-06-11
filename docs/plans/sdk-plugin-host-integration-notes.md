@@ -27,7 +27,16 @@ const plugin = createSkillsBudgetPlugin({
   skillsDescriptionCharCap: 1536, // caps combined `description + whenToUse` chars per-skill for token estimation
 
   // Optional (behavior-changing):
-  // supportsFullSkillApi?: true, // when set, plugin may call host's full skill API for a precise 'full' recompute (more accurate, higher runtime cost)
+  // supportsFullSkillApi?: true,
+  // When true and onFirstRequest() runs, `confidence` is reported as "full" rather than "estimated".
+  // The token estimation path is identical; this flag signals that the skills list reflects the
+  // actual runtime set, not an alternative computation.
+  //
+  // skills with disableModelInvocation: true are excluded from token counting entirely:
+  // skills: [
+  //   { name: 'plugin:foo', description: '...', whenToUse: '...'},
+  //   { name: 'plugin:bar', disableModelInvocation: true }, // excluded from budget
+  // ],
 });
 ```
 

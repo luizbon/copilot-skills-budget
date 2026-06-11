@@ -49,10 +49,20 @@ const result = runSkillsBudgetPreflight({
   - `notify` — emits operational warnings/events (e.g., notify(message)).
   - `setContextNode` — attach telemetry/context (e.g., setContextNode(key, payload)).
   - `contextWindowTokens` — host model context window size (number).
-  - `skills` — array of skill metadata ({ name, description, whenToUse }).
+  - `skills` — array of skill metadata (`BudgetGuardSkill[]`):
+    - `name: string` — unique skill identifier.
+    - `description?: string` — optional description text (zero tokens if absent).
+    - `whenToUse?: string` — optional; combined with `description`, capped at `skillsDescriptionCharCap` chars for estimation.
+    - `disableModelInvocation?: boolean` — when `true`, skill is **excluded from token counting** entirely.
  
 - Optional runtime flag (behavior-changing):
-  - `supportsFullSkillApi?` (boolean) — when true the plugin may call the host's full skill API to perform a precise "full" recompute; enables more accurate results at runtime cost.
+  - `supportsFullSkillApi?` (boolean) — when true and `onFirstRequest()` is called, `confidence` in the result is reported as `"full"` rather than `"estimated"`. The token calculation uses the same estimation path regardless; this flag signals host intent (that the skills list reflects the actual runtime set) rather than triggering an alternative computation.
+
+- Skills array shape (`skills: BudgetGuardSkill[]`):
+  - `name: string` — unique skill identifier.
+  - `description?: string` — skill description text (optional; contributes zero tokens if absent).
+  - `whenToUse?: string` — when-to-use text (optional; combined with `description` and capped at `skillsDescriptionCharCap` chars per skill for estimation).
+  - `disableModelInvocation?: boolean` — when `true` the skill is **excluded entirely** from token counting. Use for skills that are present in the registry but should not count toward the context budget.
  
 - Register hooks on the host (example):
   - onStartup: run the plugin preflight check during host startup.
