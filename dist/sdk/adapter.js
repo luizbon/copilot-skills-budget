@@ -1,12 +1,14 @@
 export function createSdkAdapter(deps) {
     return {
-        publishWarning(warningPayload, contextPayload) {
-            try {
-                deps.notify(warningPayload.message);
-            }
-            catch { }
+        publishContext(contextPayload) {
             try {
                 deps.setContextNode("skills-budget", contextPayload);
+            }
+            catch { }
+        },
+        publishWarning(warningPayload) {
+            try {
+                deps.notify(warningPayload.message);
             }
             catch { }
         },

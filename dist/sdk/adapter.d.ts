@@ -5,7 +5,8 @@ export interface SdkAdapterDeps {
     setContextNode: (key: string, payload: unknown) => void;
 }
 export interface SdkAdapter {
-    publishWarning: (warningPayload: PluginWarningPayload, contextPayload: ContextReportPayload) => void;
+    publishContext: (contextPayload: ContextReportPayload) => void;
+    publishWarning: (warningPayload: PluginWarningPayload) => void;
 }
 export declare function createSdkAdapter(deps: SdkAdapterDeps): SdkAdapter;
 //# sourceMappingURL=adapter.d.ts.map

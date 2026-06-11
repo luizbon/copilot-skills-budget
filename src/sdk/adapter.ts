@@ -7,18 +7,21 @@ export interface SdkAdapterDeps {
 }
 
 export interface SdkAdapter {
-  publishWarning: (warningPayload: PluginWarningPayload, contextPayload: ContextReportPayload) => void;
+  publishContext: (contextPayload: ContextReportPayload) => void;
+  publishWarning: (warningPayload: PluginWarningPayload) => void;
 }
 
 export function createSdkAdapter(deps: SdkAdapterDeps): SdkAdapter {
   return {
-    publishWarning(warningPayload: PluginWarningPayload, contextPayload: ContextReportPayload) {
-      try {
-        deps.notify(warningPayload.message);
-      } catch {}
-
+    publishContext(contextPayload: ContextReportPayload) {
       try {
         deps.setContextNode("skills-budget", contextPayload);
+      } catch {}
+    },
+
+    publishWarning(warningPayload: PluginWarningPayload) {
+      try {
+        deps.notify(warningPayload.message);
       } catch {}
     },
   };

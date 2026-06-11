@@ -40,4 +40,40 @@ describe("createSkillsBudgetPlugin", () => {
       firstRequestResult.contextPayload,
     );
   });
+
+  it("publishes context payload on each lifecycle hook even when no warning is emitted", () => {
+    const notifyFn = vi.fn();
+    const setContextNodeFn = vi.fn();
+
+    const plugin = createSkillsBudgetPlugin({
+      contextWindowTokens: 1000,
+      thresholdPct: 0.9,
+      skills: [
+        {
+          name: "plugin:small",
+          description: "short description",
+        },
+      ],
+      notify: notifyFn,
+      setContextNode: setContextNodeFn,
+    });
+
+    const startupResult = plugin.onStartup();
+    const firstRequestResult = plugin.onFirstRequest();
+
+    expect(startupResult.warning).toBeNull();
+    expect(firstRequestResult.warning).toBeNull();
+    expect(notifyFn).not.toHaveBeenCalled();
+    expect(setContextNodeFn).toHaveBeenCalledTimes(2);
+    expect(setContextNodeFn).toHaveBeenNthCalledWith(
+      1,
+      "skills-budget",
+      startupResult.contextPayload,
+    );
+    expect(setContextNodeFn).toHaveBeenNthCalledWith(
+      2,
+      "skills-budget",
+      firstRequestResult.contextPayload,
+    );
+  });
 });

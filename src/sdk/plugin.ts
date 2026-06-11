@@ -28,6 +28,8 @@ export function createSkillsBudgetPlugin(deps: SkillsBudgetPluginDeps): SkillsBu
       skills: deps.skills,
     });
 
+    adapter.publishContext(result.contextPayload);
+
     if (result.warning) {
       const warningPayload: PluginWarningPayload = {
         usagePct: result.contextPayload.usagePct,
@@ -38,7 +40,7 @@ export function createSkillsBudgetPlugin(deps: SkillsBudgetPluginDeps): SkillsBu
         message: result.warning,
       };
 
-      adapter.publishWarning(warningPayload, result.contextPayload);
+      adapter.publishWarning(warningPayload);
     }
 
     return result;

@@ -11,6 +11,7 @@ export function createSkillsBudgetPlugin(deps) {
             skillsDescriptionCharCap: deps.skillsDescriptionCharCap,
             skills: deps.skills,
         });
+        adapter.publishContext(result.contextPayload);
         if (result.warning) {
             const warningPayload = {
                 usagePct: result.contextPayload.usagePct,
@@ -20,7 +21,7 @@ export function createSkillsBudgetPlugin(deps) {
                 topContributors: result.contextPayload.topContributors,
                 message: result.warning,
             };
-            adapter.publishWarning(warningPayload, result.contextPayload);
+            adapter.publishWarning(warningPayload);
         }
         return result;
     }

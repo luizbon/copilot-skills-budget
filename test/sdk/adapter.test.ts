@@ -23,7 +23,7 @@ describe("createSdkAdapter", () => {
     topContributors: [{ name: "test-skill", tokens: 1000 }],
   };
 
-  it("publishWarning sends warning message via notify and context payload via setContextNode", () => {
+  it("publishContext sends context payload via setContextNode", () => {
     const notifyFn = vi.fn();
     const setContextNodeFn = vi.fn();
 
@@ -32,13 +32,27 @@ describe("createSdkAdapter", () => {
       setContextNode: setContextNodeFn,
     });
 
-    adapter.publishWarning(payload, contextPayload);
-
-    expect(notifyFn).toHaveBeenCalledOnce();
-    expect(notifyFn).toHaveBeenCalledWith(payload.message);
+    adapter.publishContext(contextPayload);
 
     expect(setContextNodeFn).toHaveBeenCalledOnce();
     expect(setContextNodeFn).toHaveBeenCalledWith("skills-budget", contextPayload);
+    expect(notifyFn).not.toHaveBeenCalled();
+  });
+
+  it("publishWarning sends warning message via notify", () => {
+    const notifyFn = vi.fn();
+    const setContextNodeFn = vi.fn();
+
+    const adapter = createSdkAdapter({
+      notify: notifyFn,
+      setContextNode: setContextNodeFn,
+    });
+
+    adapter.publishWarning(payload);
+
+    expect(notifyFn).toHaveBeenCalledOnce();
+    expect(notifyFn).toHaveBeenCalledWith(payload.message);
+    expect(setContextNodeFn).not.toHaveBeenCalled();
   });
 
   it("publishWarning does not throw when notify throws", () => {
@@ -52,13 +66,12 @@ describe("createSdkAdapter", () => {
       setContextNode: setContextNodeFn,
     });
 
-    expect(() => adapter.publishWarning(payload, contextPayload)).not.toThrow();
+    expect(() => adapter.publishWarning(payload)).not.toThrow();
     expect(notifyFn).toHaveBeenCalledOnce();
-    expect(setContextNodeFn).toHaveBeenCalledOnce();
-    expect(setContextNodeFn).toHaveBeenCalledWith("skills-budget", contextPayload);
+    expect(setContextNodeFn).not.toHaveBeenCalled();
   });
 
-  it("publishWarning does not throw when setContextNode throws", () => {
+  it("publishContext does not throw when setContextNode throws", () => {
     const notifyFn = vi.fn();
     const setContextNodeFn = vi.fn(() => {
       throw new Error("setContextNode failure");
@@ -69,9 +82,8 @@ describe("createSdkAdapter", () => {
       setContextNode: setContextNodeFn,
     });
 
-    expect(() => adapter.publishWarning(payload, contextPayload)).not.toThrow();
-    expect(notifyFn).toHaveBeenCalledOnce();
-    expect(notifyFn).toHaveBeenCalledWith(payload.message);
+    expect(() => adapter.publishContext(contextPayload)).not.toThrow();
+    expect(notifyFn).not.toHaveBeenCalled();
     expect(setContextNodeFn).toHaveBeenCalledOnce();
   });
 });
