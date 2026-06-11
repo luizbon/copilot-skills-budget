@@ -16,16 +16,16 @@ Includes two integration paths:
 1. On session start, a startup prompt fires automatically before you type anything
 2. A `userPromptSubmitted` hook intercepts it, computes the budget, and returns a warning or a green light — with no model invocation
 
-### Quick install (from release)
+### Quick install
 
+**macOS / Linux**
 ```bash
-# Download latest release
-curl -L https://github.com/luizbon/copilot-skills-budget/releases/latest/download/skills-budget-plugin.zip \
-  -o skills-budget-plugin.zip
+curl -fsSL https://github.com/luizbon/copilot-skills-budget/releases/latest/download/install.sh | bash
+```
 
-# Run the bundled install script
-unzip skills-budget-plugin.zip install.sh
-bash install.sh
+**Windows (PowerShell)**
+```powershell
+irm https://github.com/luizbon/copilot-skills-budget/releases/latest/download/install.ps1 | iex
 ```
 
 ### Manual install
