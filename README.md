@@ -1,8 +1,132 @@
 # skills-context-budget-guard
 
+Warns when installed Copilot skill descriptions exceed 1% of the model context window.
+
+Includes two integration paths:
+
+- **Copilot CLI plugin** — shows a budget check on every session start (no model call)
+- **SDK library** — TypeScript package for host integrations (e.g. VS Code extensions)
+
+---
+
+## Copilot CLI Plugin
+
+### How it works
+
+1. On session start, a startup prompt fires automatically before you type anything
+2. A `userPromptSubmitted` hook intercepts it, computes the budget, and returns a warning or a green light — with no model invocation
+
+### Quick install (from release)
+
+```bash
+# Download latest release
+curl -L https://github.com/luizbon/copilot-skills-budget/releases/latest/download/skills-budget-plugin.zip \
+  -o skills-budget-plugin.zip
+
+# Run the bundled install script
+unzip skills-budget-plugin.zip install.sh
+bash install.sh
+```
+
+### Manual install
+
+**1. Clone or download the repo**
+
+```bash
+git clone https://github.com/luizbon/copilot-skills-budget.git
+```
+
+**2. Install the plugin**
+
+```bash
+copilot plugin install ./copilot-skills-budget/plugin
+```
+
+**3. Create the startup hook file**
+
+The startup prompt must live in `~/.copilot/hooks/` (user-level hooks dir, not the plugin dir):
+
+```bash
+mkdir -p ~/.copilot/hooks
+cat > ~/.copilot/hooks/skills-budget.json << 'HOOK'
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "prompt",
+        "prompt": "Check my skills context budget and report any warnings"
+      }
+    ]
+  }
+}
+HOOK
+```
+
+**4. Start a new Copilot session**
+
+```bash
+copilot
+```
+
+You'll see the budget check result before your first message.
+
+### Uninstall
+
+```bash
+copilot plugin uninstall skills-budget
+rm ~/.copilot/hooks/skills-budget.json
+```
+
+### Managing skills
+
+To disable a skill that contributes too many tokens, add its name to `~/.copilot/settings.json`:
+
+```json
+{
+  "disabledSkills": [
+    "some-heavy-skill",
+    "another-skill"
+  ]
+}
+```
+
+Skill names come from the `name:` field in each skill's `SKILL.md` frontmatter.
+
+### Example output
+
+**Under budget:**
+```
+✅ Skills context is within budget: 1602 tokens (0.80% of 200,000 context window — limit is 1%). 35 active skills.
+```
+
+**Over budget:**
+```
+⚠️ Skills Context Budget Exceeded
+
+Active skills are using 2,150 tokens (1.07% of context window). Limit is 1% (~2,000 tokens).
+
+Top contributors:
+  • some-heavy-skill: ~420 tokens
+  • another-big-skill: ~380 tokens
+  ...
+
+To fix: Add skill names to "disabledSkills" in ~/.copilot/settings.json
+```
+
+---
+
+## SDK Library
+
 Utility for estimating startup skill-description token usage and returning warning/report payloads.
 
-## Usage
+### Install
+
+```bash
+npm install skills-context-budget-guard
+```
+
+### Usage
 
 ```ts
 import { runSkillsBudgetPreflight } from "skills-context-budget-guard";
@@ -13,81 +137,72 @@ const result = runSkillsBudgetPreflight({
     { name: "plugin:foo", description: "...", whenToUse: "..." },
   ],
 });
+
+if (result.warning) {
+  console.warn(result.warning);
+}
 ```
 
-`result.warning` is populated only when usage exceeds the configured threshold.
+### Config options
 
-## Config options
+| Option | Default | Description |
+|---|---|---|
+| `skillsContextWarningThresholdPct` | `1` | Warning threshold (% of context window). Alias: `thresholdPct` |
+| `skillsDescriptionCharCap` | `1536` | Cap on combined `description + whenToUse` chars per skill |
 
-- `skillsContextWarningThresholdPct` (default: `1`)
-  - Warning threshold (% of model context window).
-  - Backward-compatible alias: `thresholdPct`.
-- `skillsDescriptionCharCap` (default: `1536`)
-  - Caps the combined `description + whenToUse` text per skill when estimating token usage.
+### Result shape
 
-## Payload contract
+```ts
+{
+  warning?: string;           // human-readable warning, present only when over threshold
+  contextPayload: {
+    kind: "skills-context-budget";
+    totalTokens: number;
+    usagePct: number;
+    thresholdPct: number;
+    isOverThreshold: boolean;
+    topContributors: { name: string; tokens: number }[];
+    blocksExecution: false;   // warning-only, never blocks
+  };
+  confidence: "estimated" | "full";
+}
+```
 
-`result.contextPayload` includes:
+### SDK Plugin
 
-- `kind: "skills-context-budget"`
-- `totalTokens`, `usagePct`, `thresholdPct`, `isOverThreshold`
-- `topContributors`
-- `blocksExecution: false` (warning flow is non-blocking by design)
+For host integrations with lifecycle hooks:
 
-## Changelog
+```ts
+import { createSkillsBudgetPlugin } from 'skills-context-budget-guard/sdk/plugin';
 
-### Added
-- Startup warning for skill description context over configurable threshold.
+const plugin = createSkillsBudgetPlugin({
+  notify: (msg) => console.warn(msg),
+  setContextNode: (key, payload) => telemetry.set(key, payload),
+  contextWindowTokens: 200000,
+  skills: [{ name: 'plugin:foo', description: '...', whenToUse: '...' }],
+});
 
-## SDK Plugin Integration
+host.onStartup(() => plugin.onStartup());
+host.onFirstRequest(() => plugin.onFirstRequest());
+```
 
-- Import (example):
-  ```ts
-  import { createSkillsBudgetPlugin } from 'skills-context-budget-guard/sdk/plugin';
-  ```
-- Required host adapter callbacks (concise):
-  - `notify` — emits operational warnings/events (e.g., notify(message)).
-  - `setContextNode` — attach telemetry/context (e.g., setContextNode(key, payload)).
-  - `contextWindowTokens` — host model context window size (number).
-  - `skills` — array of skill metadata (`BudgetGuardSkill[]`):
-    - `name: string` — unique skill identifier.
-    - `description?: string` — optional description text (zero tokens if absent).
-    - `whenToUse?: string` — optional; combined with `description`, capped at `skillsDescriptionCharCap` chars for estimation.
-    - `disableModelInvocation?: boolean` — when `true`, skill is **excluded from token counting** entirely.
- 
-- Optional runtime flag (behavior-changing):
-  - `supportsFullSkillApi?` (boolean) — when true and `onFirstRequest()` is called, `confidence` in the result is reported as `"full"` rather than `"estimated"`. The token calculation uses the same estimation path regardless; this flag signals host intent (that the skills list reflects the actual runtime set) rather than triggering an alternative computation.
+---
 
-- Skills array shape (`skills: BudgetGuardSkill[]`):
-  - `name: string` — unique skill identifier.
-  - `description?: string` — skill description text (optional; contributes zero tokens if absent).
-  - `whenToUse?: string` — when-to-use text (optional; combined with `description` and capped at `skillsDescriptionCharCap` chars per skill for estimation).
-  - `disableModelInvocation?: boolean` — when `true` the skill is **excluded entirely** from token counting. Use for skills that are present in the registry but should not count toward the context budget.
- 
-- Register hooks on the host (example):
-  - onStartup: run the plugin preflight check during host startup.
-  - onFirstRequest: run an estimation on the host's first request when startup work is deferred. The plugin publishes warnings and context via the provided adapter callbacks (notify/setContextNode); the returned BudgetGuardResult is for inspection or logging only.
- 
-- Consuming the result (concise): both onStartup() and onFirstRequest() return a BudgetGuardResult. Consume and act on these fields:
-  - `warning` — human-readable warning message (present only when over threshold).
-  - `contextPayload` — detailed report: { kind, totalTokens, usagePct, thresholdPct, isOverThreshold, topContributors, blocksExecution }.
-  - `confidence` — `"estimated" | "full"` indicating estimate vs full recompute confidence.
+## Development
 
-- Configuration defaults:
-  - `skillsContextWarningThresholdPct`: `1` (1% of model context window; alias: `thresholdPct`)
-  - `skillsDescriptionCharCap`: `1536` (caps combined `description + whenToUse` chars per-skill for token estimation)
+```bash
+npm install
+npm run build
+npm test
+```
 
-- Minimal example (host wiring):
-  ```ts
-  const plugin = createSkillsBudgetPlugin({
-    notify: (m) => console.warn(m),
-    setContextNode: (k, p) => /* attach to telemetry */ null,
-    contextWindowTokens: 200000,
-    skills: [{ name: 'plugin:foo', description: '...', whenToUse: '...' }],
-  });
+### Release
 
-  // register lifecycle
-  host.onStartup(() => plugin.onStartup());
-  host.onFirstRequest(() => plugin.onFirstRequest());
-  ```
+Tag a commit to trigger the GitHub Actions release pipeline:
 
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This builds and publishes `skills-budget-plugin.zip` + `install.sh` to GitHub Releases.
