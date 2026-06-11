@@ -16,13 +16,17 @@ export function createSdkAdapter(deps: SdkAdapterDeps): SdkAdapter {
     publishContext(contextPayload: ContextReportPayload) {
       try {
         deps.setContextNode("skills-budget", contextPayload);
-      } catch {}
+      } catch {
+        // non-blocking: swallow adapter errors to preserve host stability
+      }
     },
 
     publishWarning(warningPayload: PluginWarningPayload) {
       try {
         deps.notify(warningPayload.message);
-      } catch {}
+      } catch {
+        // non-blocking: swallow adapter errors to preserve host stability
+      }
     },
   };
 }
