@@ -8,6 +8,7 @@ const STARTUP_PROMPT = 'Check my skills context budget and report any warnings';
 const SKILLS_DIRS = [
   join(homedir(), '.copilot', 'installed-plugins'),
   join(homedir(), '.copilot', 'skills'),
+  join(homedir(), '.agents', 'skills'),
 ];
 
 // Read stdin to get hook context (prompt, sessionId, cwd, etc.)
