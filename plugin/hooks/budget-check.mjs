@@ -46,16 +46,28 @@ function parseSkillFrontmatter(content) {
   return { name, description: desc, whenToUse: when, disableModelInvocation };
 }
 
-function findSkills(dir) {
+function skillSource(filePath) {
+  if (filePath.includes('/.agents/skills/')) return 'agents';
+  if (filePath.includes('/.copilot/skills/')) return 'copilot';
+  // Extract plugin collection name from installed-plugins/<collection>/...
+  const m = filePath.match(/installed-plugins\/([^/]+)\//);
+  return m ? `plugin:${m[1]}` : 'unknown';
+}
+
+function findSkills(dir, disabledSkills) {
   const skills = [];
   try {
     const walk = (d) => {
       for (const entry of readdirSync(d, { withFileTypes: true })) {
-        if (entry.isDirectory()) walk(join(d, entry.name));
-        else if (entry.name === 'SKILL.md') {
-          const content = readFileSync(join(d, entry.name), 'utf8');
+        if (entry.isDirectory()) {
+          // Skip entire subtree if this directory name is a disabled skill
+          if (disabledSkills.has(entry.name)) continue;
+          walk(join(d, entry.name));
+        } else if (entry.name === 'SKILL.md') {
+          const filePath = join(d, entry.name);
+          const content = readFileSync(filePath, 'utf8');
           const skill = parseSkillFrontmatter(content);
-          if (skill) skills.push(skill);
+          if (skill) skills.push({ ...skill, source: skillSource(filePath) });
         }
       }
     };
@@ -90,7 +102,7 @@ if (prompt.trim() !== STARTUP_PROMPT) {
 }
 
 const disabledSkills = loadDisabledSkills();
-const allSkills = SKILLS_DIRS.flatMap(findSkills);
+const allSkills = SKILLS_DIRS.flatMap((d) => findSkills(d, disabledSkills));
 
 // Filter disabled skills and deduplicate by name
 const seen = new Set();
@@ -121,7 +133,7 @@ if (totalTokens <= thresholdTokens) {
 
 // Over budget — build warning
 const top5 = skillsWithTokens.slice(0, 5);
-const topList = top5.map((s) => `  • **${s.name}**: ~${s.tokens} tokens`).join('\n');
+const topList = top5.map((s) => `  • **${s.name}** (${s.source}): ~${s.tokens} tokens`).join('\n');
 
 const warning = [
   `⚠️ **Skills Context Budget Exceeded**`,
@@ -131,7 +143,7 @@ const warning = [
   `Top contributors:`,
   topList,
   ``,
-  `**To fix:** Add skill names to \`"disabledSkills"\` in \`~/.copilot/settings.json\`:`,
+  `**To fix:** Use \`/skills\` to toggle skills off, or add skill names to \`"disabledSkills"\` in \`~/.copilot/settings.json\`:`,
   `\`\`\`json`,
   `{`,
   `  "disabledSkills": [${top5.map((s) => `"${s.name}"`).join(', ')}]`,
