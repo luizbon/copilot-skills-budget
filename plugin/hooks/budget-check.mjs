@@ -5,11 +5,26 @@ import { homedir } from 'os';
 
 const STARTUP_PROMPT = 'Check my skills context budget and report any warnings';
 
+function getBuiltinSkillsDir() {
+  const pkgDir = join(homedir(), '.copilot', 'pkg', `${process.platform}-${process.arch}`);
+  try {
+    const versions = readdirSync(pkgDir).sort().reverse(); // newest first
+    for (const v of versions) {
+      const d = join(pkgDir, v, 'builtin-skills');
+      try { readdirSync(d); return d; } catch (_) {}
+    }
+  } catch (_) {}
+  return null;
+}
+
 const SKILLS_DIRS = [
   join(homedir(), '.copilot', 'installed-plugins'),
   join(homedir(), '.copilot', 'skills'),
   join(homedir(), '.agents', 'skills'),
 ];
+
+const builtinDir = getBuiltinSkillsDir();
+if (builtinDir) SKILLS_DIRS.push(builtinDir);
 
 // Read stdin to get hook context (prompt, sessionId, cwd, etc.)
 async function readStdin() {
@@ -47,9 +62,9 @@ function parseSkillFrontmatter(content) {
 }
 
 function skillSource(filePath) {
+  if (filePath.includes('/builtin-skills/')) return 'builtin';
   if (filePath.includes('/.agents/skills/')) return 'agents';
   if (filePath.includes('/.copilot/skills/')) return 'copilot';
-  // Extract plugin collection name from installed-plugins/<collection>/...
   const m = filePath.match(/installed-plugins\/([^/]+)\//);
   return m ? `plugin:${m[1]}` : 'unknown';
 }
