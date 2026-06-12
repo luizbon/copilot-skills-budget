@@ -71,31 +71,61 @@ function skillSource(filePath) {
 
 function findSkills(dir, disabledSkills) {
   const skills = [];
-  try {
-    const walk = (d) => {
-      for (const entry of readdirSync(d, { withFileTypes: true })) {
-        if (entry.isDirectory()) {
-          // Skip entire subtree if this directory name is a disabled skill
-          if (disabledSkills.has(entry.name)) continue;
-          walk(join(d, entry.name));
-        } else if (entry.name === 'SKILL.md') {
-          const filePath = join(d, entry.name);
-          const content = readFileSync(filePath, 'utf8');
-          const skill = parseSkillFrontmatter(content);
-          if (skill) skills.push({ ...skill, source: skillSource(filePath) });
+
+  // Collect total tokens for a subtree (sub-skills roll up to parent)
+  function collectSubTokens(d) {
+    let total = 0;
+    let entries;
+    try { entries = readdirSync(d, { withFileTypes: true }); } catch (_) { return total; }
+    for (const e of entries) {
+      if (e.isDirectory()) total += collectSubTokens(join(d, e.name));
+      else if (e.name === 'SKILL.md') {
+        const c = readFileSync(join(d, e.name), 'utf8');
+        const s = parseSkillFrontmatter(c);
+        if (s) total += estimateSkillTokens(s);
+      }
+    }
+    return total;
+  }
+
+  function walk(d) {
+    let entries;
+    try { entries = readdirSync(d, { withFileTypes: true }); } catch (_) { return; }
+
+    const hasSkillMd = entries.some(e => !e.isDirectory() && e.name === 'SKILL.md');
+
+    if (hasSkillMd) {
+      // This directory is a root skill — aggregate tokens from all sub-skills
+      const filePath = join(d, 'SKILL.md');
+      const content = readFileSync(filePath, 'utf8');
+      const skill = parseSkillFrontmatter(content);
+      if (skill) {
+        let tokens = estimateSkillTokens(skill);
+        for (const e of entries) {
+          if (e.isDirectory()) tokens += collectSubTokens(join(d, e.name));
+        }
+        skills.push({ ...skill, source: skillSource(filePath), precomputedTokens: tokens });
+      }
+      // Do NOT recurse further — sub-skills are rolled up, not listed individually
+    } else {
+      // No SKILL.md here — keep descending, checking disabled dirs
+      for (const e of entries) {
+        if (e.isDirectory()) {
+          if (disabledSkills.has(e.name)) continue;
+          walk(join(d, e.name));
         }
       }
-    };
-    walk(dir);
-  } catch (_) {
-    // skip unreadable dirs
+    }
   }
+
+  walk(dir);
   return skills;
 }
 
 // Estimate tokens for a skill (mirrors Claude Code's 1536-char cap on description)
 function estimateSkillTokens(skill) {
   if (skill.disableModelInvocation) return 0;
+  if ('precomputedTokens' in skill) return skill.precomputedTokens;
   const name = skill.name ?? '';
   const desc = (skill.description ?? '').slice(0, 1536);
   const when = (skill.whenToUse ?? '').slice(0, 1536);
