@@ -1,9 +1,13 @@
 #!/usr/bin/env node
-import { readFileSync, readdirSync } from 'fs';
+import { readFileSync, readdirSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'fs';
 import { join } from 'path';
-import { homedir } from 'os';
+import { homedir, tmpdir } from 'os';
+import { execFileSync } from 'child_process';
 
 const STARTUP_PROMPT = 'Check my skills context budget and report any warnings';
+const UPDATE_COMMAND = '/update-skills-budget';
+const REPO = 'luizbon/copilot-skills-budget';
+const GITHUB_API = `https://api.github.com/repos/${REPO}/releases/latest`;
 
 function getBuiltinSkillsDir() {
   const pkgDir = join(homedir(), '.copilot', 'pkg', `${process.platform}-${process.arch}`);
@@ -138,11 +142,105 @@ function respond(output) {
   process.exit(0);
 }
 
+// ── version helpers ──────────────────────────────────────────────────────────
+
+function getCurrentVersion() {
+  try {
+    const root = process.env.COPILOT_PLUGIN_ROOT;
+    if (!root) return '0.0.0';
+    return JSON.parse(readFileSync(join(root, 'plugin.json'), 'utf8')).version ?? '0.0.0';
+  } catch (_) { return '0.0.0'; }
+}
+
+function semverGt(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] ?? 0) > (pb[i] ?? 0)) return true;
+    if ((pa[i] ?? 0) < (pb[i] ?? 0)) return false;
+  }
+  return false;
+}
+
+async function fetchRelease() {
+  const res = await fetch(GITHUB_API, {
+    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'copilot-skills-budget' },
+  });
+  if (!res.ok) throw new Error(`GitHub API ${res.status}`);
+  return res.json();
+}
+
+async function checkForUpdate() {
+  try {
+    const data = await fetchRelease();
+    const latest = (data.tag_name ?? '').replace(/^v/, '');
+    if (semverGt(latest, getCurrentVersion())) {
+      return `\n\n💡 **Update available:** \`v${latest}\` — run \`${UPDATE_COMMAND}\` to upgrade`;
+    }
+  } catch (_) {}
+  return '';
+}
+
+// ── update command ───────────────────────────────────────────────────────────
+
+async function performUpdate() {
+  const current = getCurrentVersion();
+  let data;
+  try { data = await fetchRelease(); }
+  catch (err) { return `❌ Failed to fetch release info: ${err.message}`; }
+
+  const latest = (data.tag_name ?? '').replace(/^v/, '');
+
+  if (!semverGt(latest, current)) {
+    return `✅ Already on the latest version \`v${current}\``;
+  }
+
+  const zipAsset = data.assets?.find(a => a.name === 'skills-budget-plugin.zip');
+  if (!zipAsset) return '❌ Release zip not found in latest release assets';
+
+  let zipRes;
+  try { zipRes = await fetch(zipAsset.browser_download_url, { headers: { 'User-Agent': 'copilot-skills-budget' } }); }
+  catch (err) { return `❌ Failed to download update: ${err.message}`; }
+  if (!zipRes.ok) return `❌ Download failed (HTTP ${zipRes.status})`;
+
+  const pluginRoot = process.env.COPILOT_PLUGIN_ROOT;
+  if (!pluginRoot) return '❌ COPILOT_PLUGIN_ROOT not set — cannot determine install path';
+
+  const tmpDir = join(tmpdir(), `skills-budget-update-${Date.now()}`);
+  try {
+    mkdirSync(tmpDir, { recursive: true });
+    const zipPath = join(tmpDir, 'update.zip');
+    writeFileSync(zipPath, Buffer.from(await zipRes.arrayBuffer()));
+
+    const extractDir = join(tmpDir, 'extracted');
+    mkdirSync(extractDir, { recursive: true });
+
+    if (process.platform === 'win32') {
+      execFileSync('pwsh', ['-Command', `Expand-Archive -Force -Path '${zipPath}' -DestinationPath '${extractDir}'`]);
+    } else {
+      execFileSync('unzip', ['-o', zipPath, '-d', extractDir]);
+    }
+
+    cpSync(extractDir, pluginRoot, { recursive: true, force: true });
+    return `✅ Updated \`v${current}\` → \`v${latest}\` — restart Copilot to apply`;
+  } catch (err) {
+    return `❌ Update failed: ${err.message}`;
+  } finally {
+    try { rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
+  }
+}
+
 const ctx = await readStdin();
-const prompt = ctx.prompt ?? '';
+const prompt = (ctx.prompt ?? '').trim();
+
+// Handle update slash command
+if (prompt === UPDATE_COMMAND) {
+  const result = await performUpdate();
+  respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: result });
+}
 
 // Only intercept the startup budget-check prompt
-if (prompt.trim() !== STARTUP_PROMPT) {
+if (prompt !== STARTUP_PROMPT) {
   respond({});
 }
 
@@ -168,11 +266,15 @@ const skillsWithTokens = activeSkills
 const totalTokens = skillsWithTokens.reduce((sum, s) => sum + s.tokens, 0);
 const usagePct = ((totalTokens / contextWindowTokens) * 100).toFixed(2);
 
+// Run version check in parallel with the rest of message building
+const updateNoticePromise = checkForUpdate();
+
 if (totalTokens <= thresholdTokens) {
+  const updateNotice = await updateNoticePromise;
   respond({
     handled: true,
     handledBy: 'skills-budget-guard',
-    responseContent: `✅ Skills context is within budget: ${totalTokens} tokens (${usagePct}% of ${contextWindowTokens.toLocaleString()} context window — limit is 1%). ${activeSkills.length} active skills.`,
+    responseContent: `✅ Skills context is within budget: ${totalTokens} tokens (${usagePct}% of ${contextWindowTokens.toLocaleString()} context window — limit is 1%). ${activeSkills.length} active skills.${updateNotice}`,
   });
 }
 
@@ -196,8 +298,9 @@ const warning = [
   `\`\`\``,
 ].join('\n');
 
+const updateNotice = await updateNoticePromise;
 respond({
   handled: true,
   handledBy: 'skills-budget-guard',
-  responseContent: warning,
+  responseContent: warning + updateNotice,
 });

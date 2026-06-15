@@ -1,7 +1,7 @@
 {
   "name": "skills-budget",
   "description": "Warns when installed skill descriptions exceed context budget (default 1% of context window)",
-  "version": "1.0.0",
+  "version": "0.1.2",
   "hooks": "./hooks/hooks.json",
   "mcpServers": {}
 }
