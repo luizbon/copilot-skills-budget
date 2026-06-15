@@ -1,0 +1,36 @@
+{
+  "name": "luizbon-skills-budget",
+  "owner": {
+    "name": "Luiz Bon",
+    "email": "luiz@luizbon.com"
+  },
+  "metadata": {
+    "description": "Skills context budget monitor for GitHub Copilot CLI",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "skills-budget",
+      "description": "Warns when installed skill descriptions exceed context budget (default 1% of context window)",
+      "version": "0.1.4",
+      "author": {
+        "name": "Luiz Bon",
+        "url": "https://github.com/luizbon"
+      },
+      "repository": "https://github.com/luizbon/copilot-skills-budget",
+      "license": "MIT",
+      "keywords": [
+        "skills",
+        "budget",
+        "context-window",
+        "copilot",
+        "monitoring"
+      ],
+      "source": {
+        "source": "github",
+        "repo": "luizbon/copilot-skills-budget",
+        "path": "plugin"
+      }
+    }
+  ]
+}
