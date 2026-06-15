@@ -27,7 +27,7 @@ copilot plugin marketplace add luizbon/copilot-skills-budget
 **2. Install the plugin**
 
 ```bash
-copilot plugin install skills-budget@luizbon/copilot-skills-budget
+copilot plugin install skills-budget@luizbon-skills-budget
 ```
 
 **3. Create the startup hook file**
