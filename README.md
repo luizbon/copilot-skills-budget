@@ -18,28 +18,16 @@ Includes two integration paths:
 
 ### Quick install
 
-**macOS / Linux**
-```bash
-curl -fsSL https://github.com/luizbon/copilot-skills-budget/releases/latest/download/install.sh | bash
-```
-
-**Windows (PowerShell)**
-```powershell
-irm https://github.com/luizbon/copilot-skills-budget/releases/latest/download/install.ps1 | iex
-```
-
-### Manual install
-
-**1. Clone or download the repo**
+**1. Add the marketplace (once)**
 
 ```bash
-git clone https://github.com/luizbon/copilot-skills-budget.git
+copilot plugin marketplace add luizbon/copilot-skills-budget
 ```
 
 **2. Install the plugin**
 
 ```bash
-copilot plugin install ./copilot-skills-budget/plugin
+copilot plugin install skills-budget@luizbon/copilot-skills-budget
 ```
 
 **3. Create the startup hook file**
