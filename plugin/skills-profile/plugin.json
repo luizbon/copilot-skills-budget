@@ -1,7 +1,7 @@
 {
   "name": "skills-profile",
   "description": "Manage skill profiles — save, switch, and list named sets of enabled skills",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "author": {
     "name": "Luiz Bon",
     "url": "https://github.com/luizbon"
