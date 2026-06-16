@@ -130,14 +130,14 @@ describe("profile hook", () => {
       ".test-home",
       `budget-check-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
-    const result = runBudgetHook("/skills-budget switch-profile ../bad", homeDir);
+    const result = runBudgetHook("/skills-profile switch ../bad", homeDir);
 
     expect(result.status).toBe(0);
     expect(result.error).toBeUndefined();
     expect(() => JSON.parse(result.stdout)).not.toThrow();
     expect(JSON.parse(result.stdout)).toEqual({
       handled: true,
-      handledBy: "skills-budget-guard",
+      handledBy: "skills-profile-guard",
       responseContent: '❌ Invalid profile name: "../bad"',
     });
   });
@@ -156,36 +156,36 @@ describe("profile hook", () => {
     expect(JSON.parse(result.stdout)).toEqual({});
   });
 
-  it("normalises colon-format /skills-budget:list-profiles", async () => {
+  it("normalises colon-format /skills-profile:list", async () => {
     const homeDir = join(
       repoRoot,
       ".test-home",
       `budget-check-colon-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
-    const result = runBudgetHook("/skills-budget:list-profiles", homeDir);
+    const result = runBudgetHook("/skills-profile:list", homeDir);
 
     expect(result.status).toBe(0);
     expect(result.error).toBeUndefined();
     const out = JSON.parse(result.stdout);
     expect(out).toMatchObject({
       handled: true,
-      handledBy: "skills-budget-guard",
+      handledBy: "skills-profile-guard",
     });
     expect(out.responseContent).toMatch(/profile|Profile|No profiles/);
   });
 
-  it("shows usage when invoked with no subcommand (/skills-budget:skills-budget)", async () => {
+  it("shows usage for an unrecognised subcommand (/skills-profile:unknown)", async () => {
     const homeDir = join(
       repoRoot,
       ".test-home",
       `budget-check-noarg-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
-    const result = runBudgetHook("/skills-budget:skills-budget", homeDir);
+    const result = runBudgetHook("/skills-profile:unknown", homeDir);
 
     expect(result.status).toBe(0);
     expect(result.error).toBeUndefined();
     const out = JSON.parse(result.stdout);
-    expect(out).toMatchObject({ handled: true, handledBy: "skills-budget-guard" });
+    expect(out).toMatchObject({ handled: true, handledBy: "skills-profile-guard" });
     expect(out.responseContent).toMatch(/subcommand/i);
   });
 
@@ -205,7 +205,7 @@ describe("profile hook", () => {
     expect(result.error).toBeUndefined();
     expect(JSON.parse(result.stdout)).toMatchObject({
       handled: true,
-      handledBy: "skills-budget-guard",
+      handledBy: "skills-profile-guard",
     });
     expect(JSON.parse(result.stdout).responseContent).toContain(
       "Skills context is within budget"
@@ -213,9 +213,9 @@ describe("profile hook", () => {
   });
 
   it.each([
-    "/skills-budget save-profile",
-    "/skills-budget switch-profile",
-    "/skills-budget delete-profile",
+    "/skills-profile save",
+    "/skills-profile switch",
+    "/skills-profile delete",
   ])("handles missing-argument command: %s", async prompt => {
     const homeDir = join(
       repoRoot,
@@ -228,7 +228,7 @@ describe("profile hook", () => {
     expect(result.error).toBeUndefined();
     expect(JSON.parse(result.stdout)).toMatchObject({
       handled: true,
-      handledBy: "skills-budget-guard",
+      handledBy: "skills-profile-guard",
     });
     expect(JSON.parse(result.stdout).responseContent).toMatch(/Usage|No profile/);
   });

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="luizbon/copilot-skills-budget"
-PLUGIN_DIR="${HOME}/.copilot-skills-budget-plugin"
+REPO="luizbon/copilot-skills-profile"
+PLUGIN_DIR="${HOME}/.copilot-skills-profile-plugin"
 HOOKS_DIR="${HOME}/.copilot/hooks"
-HOOK_FILE="${HOOKS_DIR}/skills-budget.json"
+HOOK_FILE="${HOOKS_DIR}/skills-profile.json"
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ require curl
 require unzip
 require copilot
 
-bold "Installing skills-budget Copilot CLI plugin..."
+bold "Installing skills-profile Copilot CLI plugin..."
 echo ""
 
 # ── fetch latest release zip ──────────────────────────────────────────────────
@@ -36,7 +36,7 @@ RELEASE_JSON=$(curl -fsSL \
   "${API_URL}")
 
 VERSION=$(echo "$RELEASE_JSON" | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
-ZIP_URL=$(echo "$RELEASE_JSON" | grep '"browser_download_url"' | grep 'skills-budget-plugin\.zip' | head -1 | sed 's/.*"browser_download_url": *"\([^"]*\)".*/\1/')
+ZIP_URL=$(echo "$RELEASE_JSON" | grep '"browser_download_url"' | grep 'skills-profile-plugin\.zip' | head -1 | sed 's/.*"browser_download_url": *"\([^"]*\)".*/\1/')
 
 if [[ -z "$VERSION" || -z "$ZIP_URL" ]]; then
   red "Error: Could not find a release at https://github.com/${REPO}/releases"
@@ -50,17 +50,17 @@ echo "Downloading: ${ZIP_URL}"
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
-curl -fsSL -o "${TMPDIR}/skills-budget-plugin.zip" "${ZIP_URL}"
+curl -fsSL -o "${TMPDIR}/skills-profile-plugin.zip" "${ZIP_URL}"
 
 # ── extract ───────────────────────────────────────────────────────────────────
 
 mkdir -p "$PLUGIN_DIR"
-unzip -o "${TMPDIR}/skills-budget-plugin.zip" -d "$PLUGIN_DIR" > /dev/null
+unzip -o "${TMPDIR}/skills-profile-plugin.zip" -d "$PLUGIN_DIR" > /dev/null
 green "✅ Plugin extracted to ${PLUGIN_DIR}"
 
 # ── install via Copilot CLI ───────────────────────────────────────────────────
 
-copilot plugin uninstall skills-budget 2>/dev/null || true
+copilot plugin uninstall skills-profile 2>/dev/null || true
 copilot plugin install "$PLUGIN_DIR"
 green "✅ Plugin installed (${VERSION})"
 
@@ -95,5 +95,5 @@ echo ""
 echo "  {\"disabledSkills\": [\"skill-name\"]}"
 echo ""
 echo "To uninstall:"
-echo "  copilot plugin uninstall skills-budget"
+echo "  copilot plugin uninstall skills-profile"
 echo "  rm ${HOOK_FILE}"

@@ -4,10 +4,10 @@ param()
 
 $ErrorActionPreference = 'Stop'
 
-$Repo      = 'luizbon/copilot-skills-budget'
-$PluginDir = Join-Path $env:USERPROFILE '.copilot-skills-budget-plugin'
+$Repo      = 'luizbon/copilot-skills-profile'
+$PluginDir = Join-Path $env:USERPROFILE '.copilot-skills-profile-plugin'
 $HooksDir  = Join-Path $env:USERPROFILE '.copilot\hooks'
-$HookFile  = Join-Path $HooksDir 'skills-budget.json'
+$HookFile  = Join-Path $HooksDir 'skills-profile.json'
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -22,7 +22,7 @@ if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host ""
-Write-Host "Installing skills-budget Copilot CLI plugin..." -ForegroundColor White -BackgroundColor DarkBlue
+Write-Host "Installing skills-profile Copilot CLI plugin..." -ForegroundColor White -BackgroundColor DarkBlue
 Write-Host ""
 
 # ── fetch latest release ──────────────────────────────────────────────────────
@@ -40,10 +40,10 @@ try {
 }
 
 $Version = $Release.tag_name
-$ZipAsset = $Release.assets | Where-Object { $_.name -eq 'skills-budget-plugin.zip' } | Select-Object -First 1
+$ZipAsset = $Release.assets | Where-Object { $_.name -eq 'skills-profile-plugin.zip' } | Select-Object -First 1
 
 if (-not $Version -or -not $ZipAsset) {
-    Write-Fail "Could not find skills-budget-plugin.zip in the latest release at https://github.com/$Repo/releases"
+    Write-Fail "Could not find skills-profile-plugin.zip in the latest release at https://github.com/$Repo/releases"
 }
 
 Write-Step "Found: $Version"
@@ -53,7 +53,7 @@ $TmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRand
 New-Item -ItemType Directory -Path $TmpDir | Out-Null
 
 try {
-    $ZipPath = Join-Path $TmpDir 'skills-budget-plugin.zip'
+    $ZipPath = Join-Path $TmpDir 'skills-profile-plugin.zip'
     Invoke-WebRequest -Uri $ZipAsset.browser_download_url -OutFile $ZipPath -UseBasicParsing
 
     # ── extract ───────────────────────────────────────────────────────────────
@@ -65,7 +65,7 @@ try {
 
     # ── install via Copilot CLI ───────────────────────────────────────────────
 
-    copilot plugin uninstall skills-budget 2>$null
+    copilot plugin uninstall skills-profile 2>$null
     copilot plugin install $PluginDir
     Write-Ok "Plugin installed ($Version)"
 
@@ -105,6 +105,6 @@ Write-Host ""
 Write-Host '  {"disabledSkills": ["skill-name"]}' -ForegroundColor Yellow
 Write-Host ""
 Write-Host "To uninstall:"
-Write-Host "  copilot plugin uninstall skills-budget" -ForegroundColor Yellow
+Write-Host "  copilot plugin uninstall skills-profile" -ForegroundColor Yellow
 Write-Host "  Remove-Item $HookFile" -ForegroundColor Yellow
 Write-Host ""

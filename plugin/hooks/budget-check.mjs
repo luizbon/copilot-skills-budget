@@ -151,7 +151,7 @@ function respond(output) {
 
 function respondProfileError(err) {
   const message = err instanceof Error ? err.message : String(err);
-  respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ ${message}` });
+  respond({ handled: true, handledBy: 'skills-profile-guard', responseContent: `❌ ${message}` });
 }
 
 const ctx = await readStdin();
@@ -162,9 +162,9 @@ const SKILLS_TRIGGER = /^\/skills(\s+(enable|disable|toggle)\s+\S+)?$/;
 const isSkillsCommand = SKILLS_TRIGGER.test(prompt);
 
 // ── profile commands ─────────────────────────────────────────────────────────
-// Normalise colon format from CLI autocomplete: /skills-budget:list-profiles → /skills-budget list-profiles
-const normalizedPrompt = prompt.replace(/^\/skills-budget:(\S*)(.*)/, '/skills-budget $1$2');
-const isProfileCommand = normalizedPrompt.startsWith('/skills-budget ');
+// Normalise colon format from CLI autocomplete: /skills-budget:list-profiles → /skills-profile list
+const normalizedPrompt = prompt.replace(/^\/skills-profile:(\S*)(.*)/, '/skills-profile $1$2');
+const isProfileCommand = normalizedPrompt.startsWith('/skills-profile ');
 
 if (!isSkillsCommand && normalizedPrompt !== STARTUP_PROMPT && !isProfileCommand) {
   respond({});
@@ -183,60 +183,60 @@ if (isProfileCommand) {
     respondProfileError(err);
   }
 
-  if (normalizedPrompt === '/skills-budget list-profiles') {
+  if (normalizedPrompt === '/skills-profile list') {
     try {
       const profiles = listProfiles();
       const active = loadActiveProfile();
       const lines = profiles.map(p => p === active ? `• **${p}** ← active` : `• ${p}`);
       respond({
         handled: true,
-        handledBy: 'skills-budget-guard',
+        handledBy: 'skills-profile-guard',
         responseContent: lines.length
           ? `**Skill profiles:**\n${lines.join('\n')}`
-          : 'No profiles yet. Run `/skills-budget save-profile <name>` to create one.',
+          : 'No profiles yet. Run `/skills-profile save <name>` to create one.',
       });
     } catch (err) { respondProfileError(err); }
   }
 
-  if (normalizedPrompt.startsWith('/skills-budget save-profile')) {
+  if (normalizedPrompt.startsWith('/skills-profile save')) {
     try {
-      const name = normalizedPrompt.slice('/skills-budget save-profile'.length).trim();
-      if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget save-profile <name>`' });
+      const name = normalizedPrompt.slice('/skills-profile save'.length).trim();
+      if (!name) respond({ handled: true, handledBy: 'skills-profile-guard', responseContent: '❌ Usage: `/skills-profile save <name>`' });
       const enabled = allSkillNames.filter(n => !disabledForProfiles.has(n));
       saveProfile(name, enabled);
-      respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `✅ Profile **${name}** saved with ${enabled.length} enabled skills.` });
+      respond({ handled: true, handledBy: 'skills-profile-guard', responseContent: `✅ Profile **${name}** saved with ${enabled.length} enabled skills.` });
     } catch (err) { respondProfileError(err); }
   }
 
-  if (normalizedPrompt === '/skills-budget update-profile') {
+  if (normalizedPrompt === '/skills-profile update') {
     try {
       const active = loadActiveProfile();
-      if (!active) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ No active profile. Run `/skills-budget save-profile <name>` first.' });
+      if (!active) respond({ handled: true, handledBy: 'skills-profile-guard', responseContent: '❌ No active profile. Run `/skills-profile save <name>` first.' });
       const enabled = allSkillNames.filter(n => !disabledForProfiles.has(n));
       saveProfile(active, enabled);
-      respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `✅ Profile **${active}** updated with ${enabled.length} enabled skills.` });
+      respond({ handled: true, handledBy: 'skills-profile-guard', responseContent: `✅ Profile **${active}** updated with ${enabled.length} enabled skills.` });
     } catch (err) { respondProfileError(err); }
   }
 
-  if (normalizedPrompt.startsWith('/skills-budget switch-profile')) {
+  if (normalizedPrompt.startsWith('/skills-profile switch')) {
     try {
-      const name = normalizedPrompt.slice('/skills-budget switch-profile'.length).trim();
-      if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget switch-profile <name>`' });
-      if (!loadProfile(name)) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ Profile **${name}** not found. Use \`/skills-budget list-profiles\` to see available profiles.` });
+      const name = normalizedPrompt.slice('/skills-profile switch'.length).trim();
+      if (!name) respond({ handled: true, handledBy: 'skills-profile-guard', responseContent: '❌ Usage: `/skills-profile switch <name>`' });
+      if (!loadProfile(name)) respond({ handled: true, handledBy: 'skills-profile-guard', responseContent: `❌ Profile **${name}** not found. Use \`/skills-profile list\` to see available profiles.` });
       applyProfile(name, allSkillNames);
       shouldContinueToBudgetCheck = true;
     } catch (err) { respondProfileError(err); }
   }
 
-  if (normalizedPrompt.startsWith('/skills-budget delete-profile')) {
+  if (normalizedPrompt.startsWith('/skills-profile delete')) {
     try {
-      const name = normalizedPrompt.slice('/skills-budget delete-profile'.length).trim();
-      if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget delete-profile <name>`' });
+      const name = normalizedPrompt.slice('/skills-profile delete'.length).trim();
+      if (!name) respond({ handled: true, handledBy: 'skills-profile-guard', responseContent: '❌ Usage: `/skills-profile delete <name>`' });
       const active = loadActiveProfile();
-      if (name === active) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ Cannot delete the active profile **${name}**. Switch to another profile first.` });
-      if (!loadProfile(name)) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ Profile **${name}** not found.` });
+      if (name === active) respond({ handled: true, handledBy: 'skills-profile-guard', responseContent: `❌ Cannot delete the active profile **${name}**. Switch to another profile first.` });
+      if (!loadProfile(name)) respond({ handled: true, handledBy: 'skills-profile-guard', responseContent: `❌ Profile **${name}** not found.` });
       deleteProfile(name);
-      respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `✅ Profile **${name}** deleted.` });
+      respond({ handled: true, handledBy: 'skills-profile-guard', responseContent: `✅ Profile **${name}** deleted.` });
     } catch (err) { respondProfileError(err); }
   }
 
@@ -244,14 +244,14 @@ if (isProfileCommand) {
   if (!shouldContinueToBudgetCheck) {
     respond({
       handled: true,
-      handledBy: 'skills-budget-guard',
+      handledBy: 'skills-profile-guard',
       responseContent: [
-        '**skills-budget subcommands:**',
-        '  • `/skills-budget list-profiles` — list all profiles',
-        '  • `/skills-budget save-profile <name>` — save current skills as a profile',
-        '  • `/skills-budget switch-profile <name>` — switch to a profile',
-        '  • `/skills-budget update-profile` — overwrite active profile with current skills',
-        '  • `/skills-budget delete-profile <name>` — delete a profile',
+        '**skills-profile subcommands:**',
+        '  • `/skills-profile list` — list all profiles',
+        '  • `/skills-profile save <name>` — save current skills as a profile',
+        '  • `/skills-profile switch <name>` — switch to a profile',
+        '  • `/skills-profile update` — overwrite active profile with current skills',
+        '  • `/skills-profile delete <name>` — delete a profile',
       ].join('\n'),
     });
   }
@@ -288,7 +288,7 @@ if (totalTokens <= thresholdTokens) {
   const profileSuffix = activeProfile ? ` (profile: **${activeProfile}**)` : '';
   respond({
     handled: true,
-    handledBy: 'skills-budget-guard',
+    handledBy: 'skills-profile-guard',
     responseContent: `✅ Skills context is within budget: ${totalTokens} tokens (${usagePct}% of ${contextWindowTokens.toLocaleString()} context window — limit is 1%). ${activeSkills.length} active skills.${profileSuffix}`,
   });
 }
@@ -315,6 +315,6 @@ const warning = [
 
 respond({
   handled: true,
-  handledBy: 'skills-budget-guard',
+  handledBy: 'skills-profile-guard',
   responseContent: warning,
 });

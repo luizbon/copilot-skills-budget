@@ -2,8 +2,8 @@ import { readFileSync, writeFileSync, renameSync, mkdirSync, readdirSync, rmSync
 import { join, resolve, sep } from 'path';
 import { homedir } from 'os';
 
-export const PROFILES_DIR = join(homedir(), '.copilot', 'plugin-data', 'skills-budget', 'profiles');
-export const ACTIVE_FILE  = join(homedir(), '.copilot', 'plugin-data', 'skills-budget', 'active-profile.json');
+export const PROFILES_DIR = join(homedir(), '.copilot', 'plugin-data', 'skills-profile', 'profiles');
+export const ACTIVE_FILE  = join(homedir(), '.copilot', 'plugin-data', 'skills-profile', 'active-profile.json');
 const SETTINGS_PATH = join(homedir(), '.copilot', 'settings.json');
 
 function ensureDir() {
