@@ -10,7 +10,7 @@
   },
   "plugins": [
     {
-      "name": "skills-profile",
+      "name": "skills-budget",
       "description": "Warns when installed skill descriptions exceed context budget (default 1% of context window)",
       "version": "0.2.4",
       "author": {
@@ -29,7 +29,28 @@
       "source": {
         "source": "github",
         "repo": "luizbon/copilot-skills-budget",
-        "path": "plugin"
+        "path": "plugin/skills-budget"
+      }
+    },
+    {
+      "name": "skills-profile",
+      "description": "Manage skill profiles — save, switch, and list named sets of enabled skills",
+      "version": "0.2.4",
+      "author": {
+        "name": "Luiz Bon",
+        "url": "https://github.com/luizbon"
+      },
+      "repository": "https://github.com/luizbon/copilot-skills-budget",
+      "license": "MIT",
+      "keywords": [
+        "skills",
+        "profile",
+        "copilot"
+      ],
+      "source": {
+        "source": "github",
+        "repo": "luizbon/copilot-skills-budget",
+        "path": "plugin/skills-profile"
       }
     }
   ]

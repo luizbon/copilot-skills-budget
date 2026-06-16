@@ -1,0 +1,15 @@
+{
+  "name": "skills-profile",
+  "description": "Manage skill profiles — save, switch, and list named sets of enabled skills",
+  "version": "0.2.4",
+  "author": {
+    "name": "Luiz Bon",
+    "url": "https://github.com/luizbon"
+  },
+  "repository": "https://github.com/luizbon/copilot-skills-budget",
+  "license": "MIT",
+  "keywords": ["skills", "profile", "copilot"],
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": {},
+  "commands": "./commands"
+}

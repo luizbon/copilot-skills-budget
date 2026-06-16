@@ -25,31 +25,38 @@ jobs:
             echo "version=dev-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Patch plugin version
+      - name: Patch plugin versions
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          # Strip leading 'v' for semver in plugin.json
           SEMVER="${VERSION#v}"
-          jq --arg v "$SEMVER" '.version = $v' plugin/plugin.json > plugin/plugin.json.tmp
-          mv plugin/plugin.json.tmp plugin/plugin.json
+          jq --arg v "$SEMVER" '.version = $v' plugin/skills-budget/plugin.json > plugin/skills-budget/plugin.json.tmp
+          mv plugin/skills-budget/plugin.json.tmp plugin/skills-budget/plugin.json
+          jq --arg v "$SEMVER" '.version = $v' plugin/skills-profile/plugin.json > plugin/skills-profile/plugin.json.tmp
+          mv plugin/skills-profile/plugin.json.tmp plugin/skills-profile/plugin.json
 
-      - name: Package plugin
+      - name: Package plugins
         run: |
-          cd plugin
-          zip -r ../skills-budget-plugin.zip .
-          cd ..
-          echo "Plugin contents:"
+          cd plugin/skills-budget
+          zip -r ../../skills-budget-plugin.zip .
+          cd ../../plugin/skills-profile
+          zip -r ../../skills-profile-plugin.zip .
+          cd ../..
+          echo "skills-budget contents:"
           unzip -l skills-budget-plugin.zip
+          echo "skills-profile contents:"
+          unzip -l skills-profile-plugin.zip
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          name: "skills-budget plugin ${{ steps.version.outputs.version }}"
+          name: "skills-budget + skills-profile plugins ${{ steps.version.outputs.version }}"
           body: |
-            ## Skills Context Budget Guard — Copilot CLI Plugin
+            ## Skills Context Budget Guard & Skills Profile Manager — Copilot CLI Plugins
 
-            Warns when installed skill descriptions exceed 1% of the model context window.
+            **skills-budget** — warns when installed skill descriptions exceed 1% of the model context window.
+
+            **skills-profile** — manage named profiles of enabled/disabled skills.
 
             ### One-line install
 
@@ -66,6 +73,7 @@ jobs:
             See [README](https://github.com/${{ github.repository }}#copilot-cli-plugin) for manual installation steps.
           files: |
             skills-budget-plugin.zip
+            skills-profile-plugin.zip
             install.sh
             install.ps1
           draft: false

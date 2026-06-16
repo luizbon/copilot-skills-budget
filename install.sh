@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="luizbon/copilot-skills-profile"
-PLUGIN_DIR="${HOME}/.copilot-skills-profile-plugin"
+REPO="luizbon/copilot-skills-budget"
 HOOKS_DIR="${HOME}/.copilot/hooks"
-HOOK_FILE="${HOOKS_DIR}/skills-profile.json"
+HOOK_FILE="${HOOKS_DIR}/skills-budget.json"
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -16,53 +15,53 @@ require() {
   command -v "$1" &>/dev/null || { red "Error: '$1' is required but not found."; exit 1; }
 }
 
+install_plugin() {
+  local name="$1" zip_name="$2"
+  local plugin_dir="${HOME}/.copilot-${name}-plugin"
+
+  echo "Downloading ${zip_name}..."
+  curl -fsSL -o "${TMPDIR}/${zip_name}" "${BASE_URL}/${zip_name}"
+
+  mkdir -p "$plugin_dir"
+  unzip -o "${TMPDIR}/${zip_name}" -d "$plugin_dir" > /dev/null
+
+  copilot plugin uninstall "$name" 2>/dev/null || true
+  copilot plugin install "$plugin_dir"
+  green "✅ ${name} plugin installed"
+}
+
 # ── preflight ─────────────────────────────────────────────────────────────────
 
 require curl
 require unzip
 require copilot
 
-bold "Installing skills-profile Copilot CLI plugin..."
+bold "Installing skills-budget + skills-profile Copilot CLI plugins..."
 echo ""
 
-# ── fetch latest release zip ──────────────────────────────────────────────────
+# ── fetch latest release ──────────────────────────────────────────────────────
 
 API_URL="https://api.github.com/repos/${REPO}/releases/latest"
-
 echo "Fetching latest release from ${REPO}..."
 
-RELEASE_JSON=$(curl -fsSL \
-  -H "Accept: application/vnd.github+json" \
-  "${API_URL}")
-
+RELEASE_JSON=$(curl -fsSL -H "Accept: application/vnd.github+json" "${API_URL}")
 VERSION=$(echo "$RELEASE_JSON" | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": *"\([^"]*\)".*/\1/')
-ZIP_URL=$(echo "$RELEASE_JSON" | grep '"browser_download_url"' | grep 'skills-profile-plugin\.zip' | head -1 | sed 's/.*"browser_download_url": *"\([^"]*\)".*/\1/')
+BASE_URL=$(echo "$RELEASE_JSON" | grep '"browser_download_url"' | head -1 | sed 's/.*"browser_download_url": *"\([^"]*\/\)[^"]*".*/\1/')
 
-if [[ -z "$VERSION" || -z "$ZIP_URL" ]]; then
+if [[ -z "$VERSION" || -z "$BASE_URL" ]]; then
   red "Error: Could not find a release at https://github.com/${REPO}/releases"
-  red "Make sure the repo is public and has at least one tagged release."
   exit 1
 fi
 
 echo "Found: ${VERSION}"
-echo "Downloading: ${ZIP_URL}"
 
 TMPDIR=$(mktemp -d)
 trap 'rm -rf "$TMPDIR"' EXIT
 
-curl -fsSL -o "${TMPDIR}/skills-profile-plugin.zip" "${ZIP_URL}"
+# ── install both plugins ──────────────────────────────────────────────────────
 
-# ── extract ───────────────────────────────────────────────────────────────────
-
-mkdir -p "$PLUGIN_DIR"
-unzip -o "${TMPDIR}/skills-profile-plugin.zip" -d "$PLUGIN_DIR" > /dev/null
-green "✅ Plugin extracted to ${PLUGIN_DIR}"
-
-# ── install via Copilot CLI ───────────────────────────────────────────────────
-
-copilot plugin uninstall skills-profile 2>/dev/null || true
-copilot plugin install "$PLUGIN_DIR"
-green "✅ Plugin installed (${VERSION})"
+install_plugin "skills-budget"  "skills-budget-plugin.zip"
+install_plugin "skills-profile" "skills-profile-plugin.zip"
 
 # ── create user-level startup hook ───────────────────────────────────────────
 # The type:prompt sessionStart hook must live in ~/.copilot/hooks/ —
@@ -89,11 +88,9 @@ green "✅ Startup hook created at ${HOOK_FILE}"
 echo ""
 bold "Done! Start a new Copilot session — the budget check will appear automatically."
 echo ""
-echo "To disable a skill that is using too many tokens, add its name to"
-echo "\"disabledSkills\" in ~/.copilot/settings.json:"
-echo ""
-echo "  {\"disabledSkills\": [\"skill-name\"]}"
+echo "Profile commands: /skills-profile:list, /skills-profile:save, /skills-profile:switch"
 echo ""
 echo "To uninstall:"
+echo "  copilot plugin uninstall skills-budget"
 echo "  copilot plugin uninstall skills-profile"
 echo "  rm ${HOOK_FILE}"

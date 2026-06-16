@@ -1,5 +1,5 @@
 {
-  "name": "skills-profile",
+  "name": "skills-budget",
   "description": "Warns when installed skill descriptions exceed context budget (default 1% of context window)",
   "version": "0.2.4",
   "author": {
@@ -8,14 +8,7 @@
   },
   "repository": "https://github.com/luizbon/copilot-skills-budget",
   "license": "MIT",
-  "keywords": [
-    "skills",
-    "budget",
-    "context-window",
-    "copilot",
-    "monitoring"
-  ],
+  "keywords": ["skills", "budget", "context-window", "copilot", "monitoring"],
   "hooks": "./hooks/hooks.json",
-  "mcpServers": {},
-  "commands": "./commands"
+  "mcpServers": {}
 }

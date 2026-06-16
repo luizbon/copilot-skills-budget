@@ -4,16 +4,33 @@ param()
 
 $ErrorActionPreference = 'Stop'
 
-$Repo      = 'luizbon/copilot-skills-profile'
-$PluginDir = Join-Path $env:USERPROFILE '.copilot-skills-profile-plugin'
-$HooksDir  = Join-Path $env:USERPROFILE '.copilot\hooks'
-$HookFile  = Join-Path $HooksDir 'skills-profile.json'
+$Repo     = 'luizbon/copilot-skills-budget'
+$HooksDir = Join-Path $env:USERPROFILE '.copilot\hooks'
+$HookFile = Join-Path $HooksDir 'skills-budget.json'
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
 function Write-Step  { param($msg) Write-Host $msg -ForegroundColor Cyan }
 function Write-Ok    { param($msg) Write-Host "✅ $msg" -ForegroundColor Green }
 function Write-Fail  { param($msg) Write-Host "Error: $msg" -ForegroundColor Red; exit 1 }
+
+function Install-CopilotPlugin {
+    param($Name, $ZipName, $BaseUrl)
+    $PluginDir = Join-Path $env:USERPROFILE ".copilot-$Name-plugin"
+    $ZipUrl    = "$BaseUrl$ZipName"
+
+    Write-Step "Downloading $ZipName..."
+    $ZipPath = Join-Path $TmpDir $ZipName
+    Invoke-WebRequest -Uri $ZipUrl -OutFile $ZipPath -UseBasicParsing
+
+    if (Test-Path $PluginDir) { Remove-Item $PluginDir -Recurse -Force }
+    New-Item -ItemType Directory -Path $PluginDir | Out-Null
+    Expand-Archive -Path $ZipPath -DestinationPath $PluginDir -Force
+
+    copilot plugin uninstall $Name 2>$null
+    copilot plugin install $PluginDir
+    Write-Ok "$Name plugin installed"
+}
 
 # ── preflight ─────────────────────────────────────────────────────────────────
 
@@ -22,16 +39,15 @@ if (-not (Get-Command copilot -ErrorAction SilentlyContinue)) {
 }
 
 Write-Host ""
-Write-Host "Installing skills-profile Copilot CLI plugin..." -ForegroundColor White -BackgroundColor DarkBlue
+Write-Host "Installing skills-budget + skills-profile Copilot CLI plugins..." -ForegroundColor White -BackgroundColor DarkBlue
 Write-Host ""
 
 # ── fetch latest release ──────────────────────────────────────────────────────
 
-$ApiUrl = "https://api.github.com/repos/$Repo/releases/latest"
+$ApiUrl  = "https://api.github.com/repos/$Repo/releases/latest"
+$Headers = @{ Accept = 'application/vnd.github+json' }
 
 Write-Step "Fetching latest release from $Repo..."
-
-$Headers = @{ Accept = 'application/vnd.github+json' }
 
 try {
     $Release = Invoke-RestMethod -Uri $ApiUrl -Headers $Headers -UseBasicParsing
@@ -39,35 +55,24 @@ try {
     Write-Fail "Could not reach GitHub API: $_`nMake sure the repo is public and has at least one tagged release."
 }
 
-$Version = $Release.tag_name
-$ZipAsset = $Release.assets | Where-Object { $_.name -eq 'skills-profile-plugin.zip' } | Select-Object -First 1
-
-if (-not $Version -or -not $ZipAsset) {
-    Write-Fail "Could not find skills-profile-plugin.zip in the latest release at https://github.com/$Repo/releases"
+$Version   = $Release.tag_name
+$FirstAsset = $Release.assets | Select-Object -First 1
+if (-not $Version -or -not $FirstAsset) {
+    Write-Fail "Could not find release assets at https://github.com/$Repo/releases"
 }
+# Base URL is the directory portion of the first asset URL
+$BaseUrl = $FirstAsset.browser_download_url -replace '[^/]+$', ''
 
 Write-Step "Found: $Version"
-Write-Step "Downloading: $($ZipAsset.browser_download_url)"
 
 $TmpDir = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
 New-Item -ItemType Directory -Path $TmpDir | Out-Null
 
 try {
-    $ZipPath = Join-Path $TmpDir 'skills-profile-plugin.zip'
-    Invoke-WebRequest -Uri $ZipAsset.browser_download_url -OutFile $ZipPath -UseBasicParsing
+    # ── install both plugins ──────────────────────────────────────────────────
 
-    # ── extract ───────────────────────────────────────────────────────────────
-
-    if (Test-Path $PluginDir) { Remove-Item $PluginDir -Recurse -Force }
-    New-Item -ItemType Directory -Path $PluginDir | Out-Null
-    Expand-Archive -Path $ZipPath -DestinationPath $PluginDir -Force
-    Write-Ok "Plugin extracted to $PluginDir"
-
-    # ── install via Copilot CLI ───────────────────────────────────────────────
-
-    copilot plugin uninstall skills-profile 2>$null
-    copilot plugin install $PluginDir
-    Write-Ok "Plugin installed ($Version)"
+    Install-CopilotPlugin -Name 'skills-budget'  -ZipName 'skills-budget-plugin.zip'  -BaseUrl $BaseUrl
+    Install-CopilotPlugin -Name 'skills-profile' -ZipName 'skills-profile-plugin.zip' -BaseUrl $BaseUrl
 
     # ── create user-level startup hook ────────────────────────────────────────
     # The type:prompt sessionStart hook must live in ~/.copilot/hooks/ —
@@ -99,12 +104,10 @@ try {
 Write-Host ""
 Write-Host "Done! Start a new Copilot session — the budget check will appear automatically." -ForegroundColor Green
 Write-Host ""
-Write-Host "To disable a skill that is using too many tokens, add its name to"
-Write-Host '"disabledSkills" in ~/.copilot/settings.json:'
-Write-Host ""
-Write-Host '  {"disabledSkills": ["skill-name"]}' -ForegroundColor Yellow
+Write-Host "Profile commands: /skills-profile:list, /skills-profile:save, /skills-profile:switch" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "To uninstall:"
+Write-Host "  copilot plugin uninstall skills-budget" -ForegroundColor Yellow
 Write-Host "  copilot plugin uninstall skills-profile" -ForegroundColor Yellow
 Write-Host "  Remove-Item $HookFile" -ForegroundColor Yellow
 Write-Host ""

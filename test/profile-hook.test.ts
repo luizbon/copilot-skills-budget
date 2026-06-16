@@ -17,7 +17,7 @@ async function importProfileModule() {
 
   process.env.HOME = homeDir;
 
-  const moduleUrl = new URL("../plugin/hooks/profile.mjs", import.meta.url);
+  const moduleUrl = new URL("../plugin/skills-profile/hooks/profile.mjs", import.meta.url);
   moduleUrl.searchParams.set("t", `${Date.now()}-${Math.random()}`);
 
   return {
@@ -26,8 +26,17 @@ async function importProfileModule() {
   };
 }
 
+function runProfileHook(prompt: string, homeDir: string) {
+  return spawnSync(process.execPath, ["plugin/skills-profile/hooks/profile-handler.mjs"], {
+    cwd: repoRoot,
+    env: { ...process.env, HOME: homeDir },
+    input: JSON.stringify({ prompt }),
+    encoding: "utf8",
+  });
+}
+
 function runBudgetHook(prompt: string, homeDir: string) {
-  return spawnSync(process.execPath, ["plugin/hooks/budget-check.mjs"], {
+  return spawnSync(process.execPath, ["plugin/skills-budget/hooks/budget-check.mjs"], {
     cwd: repoRoot,
     env: { ...process.env, HOME: homeDir },
     input: JSON.stringify({ prompt }),
@@ -128,9 +137,9 @@ describe("profile hook", () => {
     const homeDir = join(
       repoRoot,
       ".test-home",
-      `budget-check-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      `profile-handler-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
-    const result = runBudgetHook("/skills-profile switch ../bad", homeDir);
+    const result = runProfileHook("/skills-profile switch ../bad", homeDir);
 
     expect(result.status).toBe(0);
     expect(result.error).toBeUndefined();
@@ -149,7 +158,7 @@ describe("profile hook", () => {
       `budget-check-broken-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
 
-    const result = runBudgetHook("hello world", homeDir);
+    const result = runProfileHook("hello world", homeDir);
 
     expect(result.status).toBe(0);
     expect(result.error).toBeUndefined();
@@ -160,9 +169,9 @@ describe("profile hook", () => {
     const homeDir = join(
       repoRoot,
       ".test-home",
-      `budget-check-colon-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      `profile-handler-colon-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
-    const result = runBudgetHook("/skills-profile:list", homeDir);
+    const result = runProfileHook("/skills-profile:list", homeDir);
 
     expect(result.status).toBe(0);
     expect(result.error).toBeUndefined();
@@ -178,9 +187,9 @@ describe("profile hook", () => {
     const homeDir = join(
       repoRoot,
       ".test-home",
-      `budget-check-noarg-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      `profile-handler-noarg-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
-    const result = runBudgetHook("/skills-profile:unknown", homeDir);
+    const result = runProfileHook("/skills-profile:unknown", homeDir);
 
     expect(result.status).toBe(0);
     expect(result.error).toBeUndefined();
@@ -205,7 +214,7 @@ describe("profile hook", () => {
     expect(result.error).toBeUndefined();
     expect(JSON.parse(result.stdout)).toMatchObject({
       handled: true,
-      handledBy: "skills-profile-guard",
+      handledBy: "skills-budget-guard",
     });
     expect(JSON.parse(result.stdout).responseContent).toContain(
       "Skills context is within budget"
@@ -220,9 +229,9 @@ describe("profile hook", () => {
     const homeDir = join(
       repoRoot,
       ".test-home",
-      `budget-check-missing-${Date.now()}-${Math.random().toString(36).slice(2)}`
+      `profile-handler-missing-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
-    const result = runBudgetHook(prompt, homeDir);
+    const result = runProfileHook(prompt, homeDir);
 
     expect(result.status).toBe(0);
     expect(result.error).toBeUndefined();
