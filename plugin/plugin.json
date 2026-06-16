@@ -1,7 +1,7 @@
 {
   "name": "skills-budget",
   "description": "Warns when installed skill descriptions exceed context budget (default 1% of context window)",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "author": {
     "name": "Luiz Bon",
     "url": "https://github.com/luizbon"
@@ -16,6 +16,5 @@
     "monitoring"
   ],
   "hooks": "./hooks/hooks.json",
-  "mcpServers": {},
-  "commands": "./commands"
+  "mcpServers": {}
 }

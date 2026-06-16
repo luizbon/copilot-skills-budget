@@ -124,6 +124,24 @@ describe("profile hook", () => {
     }
   });
 
+  it("returns a handled error for invalid profile names in the hook", async () => {
+    const homeDir = join(
+      repoRoot,
+      ".test-home",
+      `budget-check-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    const result = runBudgetHook("/skills-budget switch-profile ../bad", homeDir);
+
+    expect(result.status).toBe(0);
+    expect(result.error).toBeUndefined();
+    expect(() => JSON.parse(result.stdout)).not.toThrow();
+    expect(JSON.parse(result.stdout)).toEqual({
+      handled: true,
+      handledBy: "skills-budget-guard",
+      responseContent: '❌ Invalid profile name: "../bad"',
+    });
+  });
+
   it("passes through unrelated prompts", async () => {
     const homeDir = join(
       repoRoot,
@@ -159,5 +177,26 @@ describe("profile hook", () => {
     expect(JSON.parse(result.stdout).responseContent).toContain(
       "Skills context is within budget"
     );
+  });
+
+  it.each([
+    "/skills-budget save-profile",
+    "/skills-budget switch-profile",
+    "/skills-budget delete-profile",
+  ])("handles missing-argument command: %s", async prompt => {
+    const homeDir = join(
+      repoRoot,
+      ".test-home",
+      `budget-check-missing-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    const result = runBudgetHook(prompt, homeDir);
+
+    expect(result.status).toBe(0);
+    expect(result.error).toBeUndefined();
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      handled: true,
+      handledBy: "skills-budget-guard",
+    });
+    expect(JSON.parse(result.stdout).responseContent).toMatch(/Usage|No profile/);
   });
 });
