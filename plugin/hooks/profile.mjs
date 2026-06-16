@@ -59,3 +59,10 @@ export function deleteProfile(name) {
   validateProfileName(name);
   rmSync(join(PROFILES_DIR, `${name}.json`), { force: true });
 }
+
+export function ensureDefaultProfile(allInstalledSkillNames, disabledSkills) {
+  if (loadProfile('default')) return; // already exists
+  const enabledSkills = allInstalledSkillNames.filter(n => !disabledSkills.has(n));
+  saveProfile('default', enabledSkills);
+  if (!loadActiveProfile()) saveActiveProfile('default');
+}
