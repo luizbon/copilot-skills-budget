@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync } from 'fs';
-import { join } from 'path';
+import { join, resolve, sep } from 'path';
 import { homedir } from 'os';
 
 export const PROFILES_DIR = join(homedir(), '.copilot', 'plugin-data', 'skills-budget', 'profiles');
@@ -7,6 +7,13 @@ export const ACTIVE_FILE  = join(homedir(), '.copilot', 'plugin-data', 'skills-b
 
 function ensureDir() {
   mkdirSync(PROFILES_DIR, { recursive: true });
+}
+
+function validateProfileName(name) {
+  const resolved = resolve(PROFILES_DIR, `${name}.json`);
+  if (!resolved.startsWith(PROFILES_DIR + sep)) {
+    throw new Error(`Invalid profile name: "${name}"`);
+  }
 }
 
 export function loadActiveProfile() {
@@ -23,6 +30,7 @@ export function saveActiveProfile(name) {
 }
 
 export function loadProfile(name) {
+  validateProfileName(name);
   try {
     return JSON.parse(readFileSync(join(PROFILES_DIR, `${name}.json`), 'utf8'));
   } catch (_) {
@@ -31,6 +39,7 @@ export function loadProfile(name) {
 }
 
 export function saveProfile(name, enabledSkills) {
+  validateProfileName(name);
   ensureDir();
   writeFileSync(
     join(PROFILES_DIR, `${name}.json`),
@@ -41,15 +50,12 @@ export function saveProfile(name, enabledSkills) {
 
 export function listProfiles() {
   ensureDir();
-  try {
-    return readdirSync(PROFILES_DIR)
-      .filter(f => f.endsWith('.json'))
-      .map(f => f.replace(/\.json$/, ''));
-  } catch (_) {
-    return [];
-  }
+  return readdirSync(PROFILES_DIR)
+    .filter(f => f.endsWith('.json'))
+    .map(f => f.replace(/\.json$/, ''));
 }
 
 export function deleteProfile(name) {
+  validateProfileName(name);
   rmSync(join(PROFILES_DIR, `${name}.json`), { force: true });
 }
