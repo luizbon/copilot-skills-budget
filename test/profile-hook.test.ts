@@ -1,5 +1,6 @@
 import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
+import { spawnSync } from "child_process";
 import { fileURLToPath } from "url";
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -23,6 +24,15 @@ async function importProfileModule() {
     homeDir,
     module: await import(moduleUrl.href),
   };
+}
+
+function runBudgetHook(prompt: string, homeDir: string) {
+  return spawnSync(process.execPath, ["plugin/hooks/budget-check.mjs"], {
+    cwd: repoRoot,
+    env: { ...process.env, HOME: homeDir },
+    input: JSON.stringify({ prompt }),
+    encoding: "utf8",
+  });
 }
 
 afterEach(() => {
@@ -112,5 +122,66 @@ describe("profile hook", () => {
     } finally {
       chmodSync(module.PROFILES_DIR, 0o755);
     }
+  });
+
+  it("returns a handled error for invalid profile names in the hook", async () => {
+    const homeDir = join(
+      repoRoot,
+      ".test-home",
+      `budget-check-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    const result = runBudgetHook("/skills-budget switch-profile ../bad", homeDir);
+
+    expect(result.status).toBe(0);
+    expect(result.error).toBeUndefined();
+    expect(() => JSON.parse(result.stdout)).not.toThrow();
+    expect(JSON.parse(result.stdout)).toEqual({
+      handled: true,
+      handledBy: "skills-budget-guard",
+      responseContent: '❌ Invalid profile name: "../bad"',
+    });
+  });
+
+  it("passes through unrelated prompts when profile bootstrap storage is broken", async () => {
+    const homeDir = join(
+      repoRoot,
+      ".test-home",
+      `budget-check-broken-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    mkdirSync(join(homeDir, ".copilot", "plugin-data", "skills-budget"), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(homeDir, ".copilot", "plugin-data", "skills-budget", "profiles"),
+      "locked\n",
+      "utf8"
+    );
+
+    const result = runBudgetHook("hello world", homeDir);
+
+    expect(result.status).toBe(0);
+    expect(result.error).toBeUndefined();
+    expect(JSON.parse(result.stdout)).toEqual({});
+  });
+
+  it.each([
+    "/skills-budget save-profile",
+    "/skills-budget switch-profile",
+    "/skills-budget delete-profile",
+  ])("handles missing-argument command: %s", async prompt => {
+    const homeDir = join(
+      repoRoot,
+      ".test-home",
+      `budget-check-missing-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    const result = runBudgetHook(prompt, homeDir);
+
+    expect(result.status).toBe(0);
+    expect(result.error).toBeUndefined();
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      handled: true,
+      handledBy: "skills-budget-guard",
+    });
+    expect(JSON.parse(result.stdout).responseContent).toMatch(/Usage|No profile/);
   });
 });
