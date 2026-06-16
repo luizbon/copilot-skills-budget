@@ -12,7 +12,7 @@
     {
       "name": "skills-budget",
       "description": "Warns when installed skill descriptions exceed context budget (default 1% of context window)",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "author": {
         "name": "Luiz Bon",
         "url": "https://github.com/luizbon"
@@ -35,7 +35,7 @@
     {
       "name": "skills-profile",
       "description": "Manage skill profiles — save, switch, and list named sets of enabled skills",
-      "version": "0.2.4",
+      "version": "0.2.5",
       "author": {
         "name": "Luiz Bon",
         "url": "https://github.com/luizbon"

@@ -33,6 +33,8 @@ jobs:
           mv plugin/skills-budget/plugin.json.tmp plugin/skills-budget/plugin.json
           jq --arg v "$SEMVER" '.version = $v' plugin/skills-profile/plugin.json > plugin/skills-profile/plugin.json.tmp
           mv plugin/skills-profile/plugin.json.tmp plugin/skills-profile/plugin.json
+          jq --arg v "$SEMVER" '(.plugins[].version) = $v' .github/plugin/marketplace.json > .github/plugin/marketplace.json.tmp
+          mv .github/plugin/marketplace.json.tmp .github/plugin/marketplace.json
 
       - name: Package plugins
         run: |
