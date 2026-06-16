@@ -4,6 +4,7 @@ import { homedir } from 'os';
 
 export const PROFILES_DIR = join(homedir(), '.copilot', 'plugin-data', 'skills-budget', 'profiles');
 export const ACTIVE_FILE  = join(homedir(), '.copilot', 'plugin-data', 'skills-budget', 'active-profile.json');
+const SETTINGS_PATH = join(homedir(), '.copilot', 'settings.json');
 
 function ensureDir() {
   mkdirSync(PROFILES_DIR, { recursive: true });
@@ -66,4 +67,21 @@ export function ensureDefaultProfile(allInstalledSkillNames, disabledSkills) {
   const enabledSkills = allInstalledSkillNames.filter(n => !disabled.has(n));
   saveProfile('default', enabledSkills);
   if (!loadActiveProfile()) saveActiveProfile('default');
+}
+
+export function applyProfile(profileName, allInstalledSkillNames) {
+  const profile = loadProfile(profileName);
+  if (!profile) throw new Error(`Profile "${profileName}" not found`);
+
+  const enabledSet = new Set(profile.enabledSkills);
+  const disabledSkills = allInstalledSkillNames.filter(n => !enabledSet.has(n));
+
+  let settings = {};
+  try {
+    settings = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'));
+  } catch (_) {}
+
+  settings.disabledSkills = disabledSkills;
+  writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2) + '\n', 'utf8');
+  saveActiveProfile(profileName);
 }
