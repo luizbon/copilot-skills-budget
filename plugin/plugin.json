@@ -1,7 +1,7 @@
 {
   "name": "skills-budget",
   "description": "Warns when installed skill descriptions exceed context budget (default 1% of context window)",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "author": {
     "name": "Luiz Bon",
     "url": "https://github.com/luizbon"
@@ -17,26 +17,5 @@
   ],
   "hooks": "./hooks/hooks.json",
   "mcpServers": {},
-  "commands": [
-    {
-      "name": "save-profile",
-      "description": "Save current enabled skills as a named profile. Usage: /skills-budget save-profile <name>"
-    },
-    {
-      "name": "update-profile",
-      "description": "Overwrite the active profile with current enabled skills."
-    },
-    {
-      "name": "switch-profile",
-      "description": "Switch to a named skill profile. Usage: /skills-budget switch-profile <name>"
-    },
-    {
-      "name": "list-profiles",
-      "description": "List all skill profiles, highlighting the active one."
-    },
-    {
-      "name": "delete-profile",
-      "description": "Delete a named skill profile. Usage: /skills-budget delete-profile <name>"
-    }
-  ]
+  "commands": "./commands"
 }
