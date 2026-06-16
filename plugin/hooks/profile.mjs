@@ -62,7 +62,8 @@ export function deleteProfile(name) {
 
 export function ensureDefaultProfile(allInstalledSkillNames, disabledSkills) {
   if (loadProfile('default')) return; // already exists
-  const enabledSkills = allInstalledSkillNames.filter(n => !disabledSkills.has(n));
+  const disabled = disabledSkills instanceof Set ? disabledSkills : new Set(disabledSkills);
+  const enabledSkills = allInstalledSkillNames.filter(n => !disabled.has(n));
   saveProfile('default', enabledSkills);
   if (!loadActiveProfile()) saveActiveProfile('default');
 }

@@ -52,6 +52,19 @@ describe("profile hook", () => {
     }
   );
 
+  it("accepts disabledSkills as an array when ensuring the default profile", async () => {
+    const { module } = await importProfileModule();
+
+    expect(() =>
+      module.ensureDefaultProfile(["alpha", "beta"], ["beta"])
+    ).not.toThrow();
+    expect(module.loadProfile("default")).toEqual({
+      name: "default",
+      enabledSkills: ["alpha"],
+    });
+    expect(module.loadActiveProfile()).toBe("default");
+  });
+
   it("surfaces directory permission errors from listProfiles", async () => {
     const { module } = await importProfileModule();
 
