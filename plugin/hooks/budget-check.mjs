@@ -239,6 +239,22 @@ if (isProfileCommand) {
       respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `✅ Profile **${name}** deleted.` });
     } catch (err) { respondProfileError(err); }
   }
+
+  // No specific subcommand matched — show usage rather than falling through to the model
+  if (!shouldContinueToBudgetCheck) {
+    respond({
+      handled: true,
+      handledBy: 'skills-budget-guard',
+      responseContent: [
+        '**skills-budget subcommands:**',
+        '  • `/skills-budget list-profiles` — list all profiles',
+        '  • `/skills-budget save-profile <name>` — save current skills as a profile',
+        '  • `/skills-budget switch-profile <name>` — switch to a profile',
+        '  • `/skills-budget update-profile` — overwrite active profile with current skills',
+        '  • `/skills-budget delete-profile <name>` — delete a profile',
+      ].join('\n'),
+    });
+  }
 }
 
 if (!isSkillsCommand && prompt !== STARTUP_PROMPT && !shouldContinueToBudgetCheck) {

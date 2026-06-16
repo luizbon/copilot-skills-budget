@@ -174,6 +174,21 @@ describe("profile hook", () => {
     expect(out.responseContent).toMatch(/profile|Profile|No profiles/);
   });
 
+  it("shows usage when invoked with no subcommand (/skills-budget:skills-budget)", async () => {
+    const homeDir = join(
+      repoRoot,
+      ".test-home",
+      `budget-check-noarg-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    const result = runBudgetHook("/skills-budget:skills-budget", homeDir);
+
+    expect(result.status).toBe(0);
+    expect(result.error).toBeUndefined();
+    const out = JSON.parse(result.stdout);
+    expect(out).toMatchObject({ handled: true, handledBy: "skills-budget-guard" });
+    expect(out.responseContent).toMatch(/subcommand/i);
+  });
+
   it.each([
     "Check my skills context budget and report any warnings",
     "/skills",
