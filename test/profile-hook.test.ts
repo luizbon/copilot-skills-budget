@@ -124,52 +124,11 @@ describe("profile hook", () => {
     }
   });
 
-  it("returns a handled error for invalid profile names in the hook", async () => {
-    const homeDir = join(
-      repoRoot,
-      ".test-home",
-      `budget-check-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    );
-    const result = runBudgetHook("/skills-budget switch-profile ../bad", homeDir);
-
-    expect(result.status).toBe(0);
-    expect(result.error).toBeUndefined();
-    expect(() => JSON.parse(result.stdout)).not.toThrow();
-    expect(JSON.parse(result.stdout)).toEqual({
-      handled: true,
-      handledBy: "skills-budget-guard",
-      responseContent: '❌ Invalid profile name: "../bad"',
-    });
-  });
-
-  it("normalizes colon-style command /skills-budget:list-profiles to space style", async () => {
-    const homeDir = join(
-      repoRoot,
-      ".test-home",
-      `budget-check-colon-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    );
-    const result = runBudgetHook("/skills-budget:list-profiles", homeDir);
-
-    expect(result.status).toBe(0);
-    expect(result.error).toBeUndefined();
-    const out = JSON.parse(result.stdout);
-    expect(out).toMatchObject({ handled: true, handledBy: "skills-budget-guard" });
-    expect(out.responseContent).toMatch(/profile|Profile/);
-  });
-
-  it("passes through unrelated prompts when profile bootstrap storage is broken", async () => {
+  it("passes through unrelated prompts", async () => {
     const homeDir = join(
       repoRoot,
       ".test-home",
       `budget-check-broken-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    );
-    mkdirSync(join(homeDir, ".copilot", "plugin-data", "skills-budget"), {
-      recursive: true,
-    });
-    writeFileSync(
-      join(homeDir, ".copilot", "plugin-data", "skills-budget", "profiles"),
-      "locked\n",
-      "utf8"
     );
 
     const result = runBudgetHook("hello world", homeDir);
@@ -182,19 +141,11 @@ describe("profile hook", () => {
   it.each([
     "Check my skills context budget and report any warnings",
     "/skills",
-  ])("skips profile bootstrap for non-profile command: %s", async prompt => {
+  ])("runs budget check for: %s", async prompt => {
     const homeDir = join(
       repoRoot,
       ".test-home",
-      `budget-check-non-profile-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    );
-    mkdirSync(join(homeDir, ".copilot", "plugin-data", "skills-budget"), {
-      recursive: true,
-    });
-    writeFileSync(
-      join(homeDir, ".copilot", "plugin-data", "skills-budget", "profiles"),
-      "locked\n",
-      "utf8"
+      `budget-check-passthrough-${Date.now()}-${Math.random().toString(36).slice(2)}`
     );
 
     const result = runBudgetHook(prompt, homeDir);
@@ -208,30 +159,5 @@ describe("profile hook", () => {
     expect(JSON.parse(result.stdout).responseContent).toContain(
       "Skills context is within budget"
     );
-    expect(JSON.parse(result.stdout).responseContent).not.toContain("EEXIST");
-  });
-
-  it.each([
-    "/skills-budget save-profile",
-    "/skills-budget switch-profile",
-    "/skills-budget delete-profile",
-    "/skills-budget:save-profile",
-    "/skills-budget:switch-profile",
-    "/skills-budget:delete-profile",
-  ])("handles missing-argument command: %s", async prompt => {
-    const homeDir = join(
-      repoRoot,
-      ".test-home",
-      `budget-check-missing-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    );
-    const result = runBudgetHook(prompt, homeDir);
-
-    expect(result.status).toBe(0);
-    expect(result.error).toBeUndefined();
-    expect(JSON.parse(result.stdout)).toMatchObject({
-      handled: true,
-      handledBy: "skills-budget-guard",
-    });
-    expect(JSON.parse(result.stdout).responseContent).toMatch(/Usage|No profile/);
   });
 });

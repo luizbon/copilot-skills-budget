@@ -4,8 +4,7 @@ import { join } from 'path';
 import { homedir, tmpdir } from 'os';
 import { execFileSync } from 'child_process';
 import {
-  loadActiveProfile, saveActiveProfile, loadProfile, saveProfile,
-  listProfiles, deleteProfile, ensureDefaultProfile, applyProfile,
+  loadActiveProfile,
 } from './profile.mjs';
 
 const STARTUP_PROMPT = 'Check my skills context budget and report any warnings';
@@ -55,13 +54,6 @@ function loadDisabledSkills() {
   } catch (_) {
     return new Set();
   }
-}
-
-function getAllInstalledSkillNames() {
-  return SKILLS_DIRS
-    .flatMap(d => findSkills(d, new Set()))
-    .map(s => s.name)
-    .filter((n, i, arr) => arr.indexOf(n) === i);
 }
 
 function parseSkillFrontmatter(content) {
@@ -151,15 +143,6 @@ function estimateSkillTokens(skill) {
 function respond(output) {
   process.stdout.write(JSON.stringify(output) + '\n');
   process.exit(0);
-}
-
-function respondProfileError(err) {
-  const message = err instanceof Error ? err.message : String(err);
-  respond({
-    handled: true,
-    handledBy: 'skills-budget-guard',
-    responseContent: `❌ ${message}`,
-  });
 }
 
 // ── version helpers ──────────────────────────────────────────────────────────
@@ -263,101 +246,11 @@ if (prompt === UPDATE_COMMAND) {
 const SKILLS_TRIGGER = /^\/skills(\s+(enable|disable|toggle)\s+\S+)?$/;
 const isSkillsCommand = SKILLS_TRIGGER.test(prompt);
 
-// ── profile commands ─────────────────────────────────────────────────────────
-
-// Normalize both invocation styles:
-//   /skills-budget:list-profiles  (colon — from CLI autocomplete)
-//   /skills-budget list-profiles  (space — typed directly)
-const normalizedPrompt = prompt.replace(/^\/skills-budget:(\S+)/, '/skills-budget $1');
-const isProfileCommand = normalizedPrompt.startsWith('/skills-budget ');
-
-if (!isSkillsCommand && prompt !== STARTUP_PROMPT && !isProfileCommand) {
+if (!isSkillsCommand && prompt !== STARTUP_PROMPT) {
   respond({});
 }
 
-let shouldContinueToBudgetCheck = false;
 
-if (isProfileCommand) {
-  let allSkillNames;
-  let disabledForProfiles;
-  try {
-    allSkillNames = getAllInstalledSkillNames();
-    disabledForProfiles = loadDisabledSkills();
-    ensureDefaultProfile(allSkillNames, disabledForProfiles);
-  } catch (err) {
-    respondProfileError(err);
-  }
-
-  if (normalizedPrompt === '/skills-budget list-profiles') {
-    try {
-      const profiles = listProfiles();
-      const active = loadActiveProfile();
-      const lines = profiles.map(p => p === active ? `• **${p}** ← active` : `• ${p}`);
-      respond({
-        handled: true,
-        handledBy: 'skills-budget-guard',
-        responseContent: lines.length
-          ? `**Skill profiles:**\n${lines.join('\n')}`
-          : 'No profiles yet. Run `/skills-budget save-profile <name>` to create one.',
-      });
-    } catch (err) {
-      respondProfileError(err);
-    }
-  }
-
-  if (normalizedPrompt.startsWith('/skills-budget save-profile')) {
-    try {
-      const name = normalizedPrompt.slice('/skills-budget save-profile'.length).trim();
-      if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget save-profile <name>`' });
-      const enabled = allSkillNames.filter(n => !disabledForProfiles.has(n));
-      saveProfile(name, enabled);
-      respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `✅ Profile **${name}** saved with ${enabled.length} enabled skills.` });
-    } catch (err) {
-      respondProfileError(err);
-    }
-  }
-
-  if (normalizedPrompt === '/skills-budget update-profile') {
-    try {
-      const active = loadActiveProfile();
-      if (!active) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ No active profile. Run `/skills-budget save-profile <name>` first.' });
-      const enabled = allSkillNames.filter(n => !disabledForProfiles.has(n));
-      saveProfile(active, enabled);
-      respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `✅ Profile **${active}** updated with ${enabled.length} enabled skills.` });
-    } catch (err) {
-      respondProfileError(err);
-    }
-  }
-
-  if (normalizedPrompt.startsWith('/skills-budget switch-profile')) {
-    try {
-      const name = normalizedPrompt.slice('/skills-budget switch-profile'.length).trim();
-      if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget switch-profile <name>`' });
-      if (!loadProfile(name)) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ Profile **${name}** not found. Use \`/skills-budget list-profiles\` to see available profiles.` });
-      applyProfile(name, allSkillNames);
-      shouldContinueToBudgetCheck = true;
-      // Fall through to budget check so user sees result immediately
-    } catch (err) {
-      respondProfileError(err);
-    }
-  }
-
-  if (normalizedPrompt.startsWith('/skills-budget delete-profile')) {
-    try {
-      const name = normalizedPrompt.slice('/skills-budget delete-profile'.length).trim();
-      if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget delete-profile <name>`' });
-      const active = loadActiveProfile();
-      if (name === active) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ Cannot delete the active profile **${name}**. Switch to another profile first.` });
-      if (!loadProfile(name)) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ Profile **${name}** not found.` });
-      deleteProfile(name);
-      respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `✅ Profile **${name}** deleted.` });
-    } catch (err) {
-      respondProfileError(err);
-    }
-  }
-}
-
-// ── /skills trigger ───────────────────────────────────────────────────────────
 if (!isSkillsCommand && prompt !== STARTUP_PROMPT && !shouldContinueToBudgetCheck) {
   respond({});
 }
