@@ -165,6 +165,38 @@ describe("profile hook", () => {
   });
 
   it.each([
+    "Check my skills context budget and report any warnings",
+    "/skills",
+  ])("skips profile bootstrap for non-profile command: %s", async prompt => {
+    const homeDir = join(
+      repoRoot,
+      ".test-home",
+      `budget-check-non-profile-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    mkdirSync(join(homeDir, ".copilot", "plugin-data", "skills-budget"), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(homeDir, ".copilot", "plugin-data", "skills-budget", "profiles"),
+      "locked\n",
+      "utf8"
+    );
+
+    const result = runBudgetHook(prompt, homeDir);
+
+    expect(result.status).toBe(0);
+    expect(result.error).toBeUndefined();
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      handled: true,
+      handledBy: "skills-budget-guard",
+    });
+    expect(JSON.parse(result.stdout).responseContent).toContain(
+      "Skills context is within budget"
+    );
+    expect(JSON.parse(result.stdout).responseContent).not.toContain("EEXIST");
+  });
+
+  it.each([
     "/skills-budget save-profile",
     "/skills-budget switch-profile",
     "/skills-budget delete-profile",
