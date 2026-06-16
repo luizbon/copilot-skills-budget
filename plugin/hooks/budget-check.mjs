@@ -1,17 +1,13 @@
 #!/usr/bin/env node
-import { readFileSync, readdirSync, writeFileSync, mkdirSync, cpSync, rmSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
-import { homedir, tmpdir } from 'os';
-import { execFileSync } from 'child_process';
+import { homedir } from 'os';
 import {
   loadActiveProfile, loadProfile, saveProfile,
   listProfiles, deleteProfile, ensureDefaultProfile, applyProfile,
 } from './profile.mjs';
 
 const STARTUP_PROMPT = 'Check my skills context budget and report any warnings';
-const UPDATE_COMMAND = '/update-skills-budget';
-const REPO = 'luizbon/copilot-skills-budget';
-const GITHUB_API = `https://api.github.com/repos/${REPO}/releases/latest`;
 
 function getBuiltinSkillsDir() {
   const pkgDir = join(homedir(), '.copilot', 'pkg', `${process.platform}-${process.arch}`);
@@ -158,111 +154,19 @@ function respondProfileError(err) {
   respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ ${message}` });
 }
 
-// ── version helpers ──────────────────────────────────────────────────────────
-
-function getCurrentVersion() {
-  try {
-    const root = process.env.COPILOT_PLUGIN_ROOT;
-    if (!root) return '0.0.0';
-    return JSON.parse(readFileSync(join(root, 'plugin.json'), 'utf8')).version ?? '0.0.0';
-  } catch (_) { return '0.0.0'; }
-}
-
-function semverGt(a, b) {
-  const pa = a.split('.').map(Number);
-  const pb = b.split('.').map(Number);
-  for (let i = 0; i < 3; i++) {
-    if ((pa[i] ?? 0) > (pb[i] ?? 0)) return true;
-    if ((pa[i] ?? 0) < (pb[i] ?? 0)) return false;
-  }
-  return false;
-}
-
-async function fetchRelease() {
-  const res = await fetch(GITHUB_API, {
-    headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'copilot-skills-budget' },
-  });
-  if (!res.ok) throw new Error(`GitHub API ${res.status}`);
-  return res.json();
-}
-
-async function checkForUpdate() {
-  try {
-    const data = await fetchRelease();
-    const latest = (data.tag_name ?? '').replace(/^v/, '');
-    if (semverGt(latest, getCurrentVersion())) {
-      return `\n\n💡 **Update available:** \`v${latest}\` — run \`${UPDATE_COMMAND}\` to upgrade`;
-    }
-  } catch (_) {}
-  return '';
-}
-
-// ── update command ───────────────────────────────────────────────────────────
-
-async function performUpdate() {
-  const current = getCurrentVersion();
-  let data;
-  try { data = await fetchRelease(); }
-  catch (err) { return `❌ Failed to fetch release info: ${err.message}`; }
-
-  const latest = (data.tag_name ?? '').replace(/^v/, '');
-
-  if (!semverGt(latest, current)) {
-    return `✅ Already on the latest version \`v${current}\``;
-  }
-
-  const zipAsset = data.assets?.find(a => a.name === 'skills-budget-plugin.zip');
-  if (!zipAsset) return '❌ Release zip not found in latest release assets';
-
-  let zipRes;
-  try { zipRes = await fetch(zipAsset.browser_download_url, { headers: { 'User-Agent': 'copilot-skills-budget' } }); }
-  catch (err) { return `❌ Failed to download update: ${err.message}`; }
-  if (!zipRes.ok) return `❌ Download failed (HTTP ${zipRes.status})`;
-
-  const pluginRoot = process.env.COPILOT_PLUGIN_ROOT;
-  if (!pluginRoot) return '❌ COPILOT_PLUGIN_ROOT not set — cannot determine install path';
-
-  const tmpDir = join(tmpdir(), `skills-budget-update-${Date.now()}`);
-  try {
-    mkdirSync(tmpDir, { recursive: true });
-    const zipPath = join(tmpDir, 'update.zip');
-    writeFileSync(zipPath, Buffer.from(await zipRes.arrayBuffer()));
-
-    const extractDir = join(tmpDir, 'extracted');
-    mkdirSync(extractDir, { recursive: true });
-
-    if (process.platform === 'win32') {
-      execFileSync('pwsh', ['-Command', `Expand-Archive -Force -Path '${zipPath}' -DestinationPath '${extractDir}'`]);
-    } else {
-      execFileSync('unzip', ['-o', zipPath, '-d', extractDir]);
-    }
-
-    cpSync(extractDir, pluginRoot, { recursive: true, force: true });
-    return `✅ Updated \`v${current}\` → \`v${latest}\` — restart Copilot to apply`;
-  } catch (err) {
-    return `❌ Update failed: ${err.message}`;
-  } finally {
-    try { rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
-  }
-}
-
 const ctx = await readStdin();
 const prompt = (ctx.prompt ?? '').trim();
-
-// Handle update slash command
-if (prompt === UPDATE_COMMAND) {
-  const result = await performUpdate();
-  respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: result });
-}
 
 // ── /skills trigger ───────────────────────────────────────────────────────────
 const SKILLS_TRIGGER = /^\/skills(\s+(enable|disable|toggle)\s+\S+)?$/;
 const isSkillsCommand = SKILLS_TRIGGER.test(prompt);
 
 // ── profile commands ─────────────────────────────────────────────────────────
-const isProfileCommand = prompt.startsWith('/skills-budget ');
+// Normalise colon format from CLI autocomplete: /skills-budget:list-profiles → /skills-budget list-profiles
+const normalizedPrompt = prompt.replace(/^\/skills-budget:(\S*)(.*)/, '/skills-budget $1$2');
+const isProfileCommand = normalizedPrompt.startsWith('/skills-budget ');
 
-if (!isSkillsCommand && prompt !== STARTUP_PROMPT && !isProfileCommand) {
+if (!isSkillsCommand && normalizedPrompt !== STARTUP_PROMPT && !isProfileCommand) {
   respond({});
 }
 
@@ -279,7 +183,7 @@ if (isProfileCommand) {
     respondProfileError(err);
   }
 
-  if (prompt === '/skills-budget list-profiles') {
+  if (normalizedPrompt === '/skills-budget list-profiles') {
     try {
       const profiles = listProfiles();
       const active = loadActiveProfile();
@@ -294,9 +198,9 @@ if (isProfileCommand) {
     } catch (err) { respondProfileError(err); }
   }
 
-  if (prompt.startsWith('/skills-budget save-profile')) {
+  if (normalizedPrompt.startsWith('/skills-budget save-profile')) {
     try {
-      const name = prompt.slice('/skills-budget save-profile'.length).trim();
+      const name = normalizedPrompt.slice('/skills-budget save-profile'.length).trim();
       if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget save-profile <name>`' });
       const enabled = allSkillNames.filter(n => !disabledForProfiles.has(n));
       saveProfile(name, enabled);
@@ -304,7 +208,7 @@ if (isProfileCommand) {
     } catch (err) { respondProfileError(err); }
   }
 
-  if (prompt === '/skills-budget update-profile') {
+  if (normalizedPrompt === '/skills-budget update-profile') {
     try {
       const active = loadActiveProfile();
       if (!active) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ No active profile. Run `/skills-budget save-profile <name>` first.' });
@@ -314,9 +218,9 @@ if (isProfileCommand) {
     } catch (err) { respondProfileError(err); }
   }
 
-  if (prompt.startsWith('/skills-budget switch-profile')) {
+  if (normalizedPrompt.startsWith('/skills-budget switch-profile')) {
     try {
-      const name = prompt.slice('/skills-budget switch-profile'.length).trim();
+      const name = normalizedPrompt.slice('/skills-budget switch-profile'.length).trim();
       if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget switch-profile <name>`' });
       if (!loadProfile(name)) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ Profile **${name}** not found. Use \`/skills-budget list-profiles\` to see available profiles.` });
       applyProfile(name, allSkillNames);
@@ -324,9 +228,9 @@ if (isProfileCommand) {
     } catch (err) { respondProfileError(err); }
   }
 
-  if (prompt.startsWith('/skills-budget delete-profile')) {
+  if (normalizedPrompt.startsWith('/skills-budget delete-profile')) {
     try {
-      const name = prompt.slice('/skills-budget delete-profile'.length).trim();
+      const name = normalizedPrompt.slice('/skills-budget delete-profile'.length).trim();
       if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget delete-profile <name>`' });
       const active = loadActiveProfile();
       if (name === active) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ Cannot delete the active profile **${name}**. Switch to another profile first.` });
@@ -363,17 +267,13 @@ const skillsWithTokens = activeSkills
 const totalTokens = skillsWithTokens.reduce((sum, s) => sum + s.tokens, 0);
 const usagePct = ((totalTokens / contextWindowTokens) * 100).toFixed(2);
 
-// Run version check in parallel with the rest of message building
-const updateNoticePromise = checkForUpdate();
-
 if (totalTokens <= thresholdTokens) {
-  const updateNotice = await updateNoticePromise;
   const activeProfile = loadActiveProfile();
   const profileSuffix = activeProfile ? ` (profile: **${activeProfile}**)` : '';
   respond({
     handled: true,
     handledBy: 'skills-budget-guard',
-    responseContent: `✅ Skills context is within budget: ${totalTokens} tokens (${usagePct}% of ${contextWindowTokens.toLocaleString()} context window — limit is 1%). ${activeSkills.length} active skills.${profileSuffix}${updateNotice}`,
+    responseContent: `✅ Skills context is within budget: ${totalTokens} tokens (${usagePct}% of ${contextWindowTokens.toLocaleString()} context window — limit is 1%). ${activeSkills.length} active skills.${profileSuffix}`,
   });
 }
 
@@ -397,9 +297,8 @@ const warning = [
   `\`\`\``,
 ].join('\n');
 
-const updateNotice = await updateNoticePromise;
 respond({
   handled: true,
   handledBy: 'skills-budget-guard',
-  responseContent: warning + updateNotice,
+  responseContent: warning,
 });

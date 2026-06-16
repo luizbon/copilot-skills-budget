@@ -156,6 +156,24 @@ describe("profile hook", () => {
     expect(JSON.parse(result.stdout)).toEqual({});
   });
 
+  it("normalises colon-format /skills-budget:list-profiles", async () => {
+    const homeDir = join(
+      repoRoot,
+      ".test-home",
+      `budget-check-colon-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    const result = runBudgetHook("/skills-budget:list-profiles", homeDir);
+
+    expect(result.status).toBe(0);
+    expect(result.error).toBeUndefined();
+    const out = JSON.parse(result.stdout);
+    expect(out).toMatchObject({
+      handled: true,
+      handledBy: "skills-budget-guard",
+    });
+    expect(out.responseContent).toMatch(/profile|Profile|No profiles/);
+  });
+
   it.each([
     "Check my skills context budget and report any warnings",
     "/skills",
