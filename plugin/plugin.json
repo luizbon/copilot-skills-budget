@@ -1,7 +1,7 @@
 {
   "name": "skills-budget",
   "description": "Warns when installed skill descriptions exceed context budget (default 1% of context window)",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "author": {
     "name": "Luiz Bon",
     "url": "https://github.com/luizbon"

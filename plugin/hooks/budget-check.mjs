@@ -265,7 +265,11 @@ const isSkillsCommand = SKILLS_TRIGGER.test(prompt);
 
 // ── profile commands ─────────────────────────────────────────────────────────
 
-const isProfileCommand = prompt.startsWith('/skills-budget ');
+// Normalize both invocation styles:
+//   /skills-budget:list-profiles  (colon — from CLI autocomplete)
+//   /skills-budget list-profiles  (space — typed directly)
+const normalizedPrompt = prompt.replace(/^\/skills-budget:(\S+)/, '/skills-budget $1');
+const isProfileCommand = normalizedPrompt.startsWith('/skills-budget ');
 
 if (!isSkillsCommand && prompt !== STARTUP_PROMPT && !isProfileCommand) {
   respond({});
@@ -284,7 +288,7 @@ if (isProfileCommand) {
     respondProfileError(err);
   }
 
-  if (prompt === '/skills-budget list-profiles') {
+  if (normalizedPrompt === '/skills-budget list-profiles') {
     try {
       const profiles = listProfiles();
       const active = loadActiveProfile();
@@ -301,9 +305,9 @@ if (isProfileCommand) {
     }
   }
 
-  if (prompt.startsWith('/skills-budget save-profile')) {
+  if (normalizedPrompt.startsWith('/skills-budget save-profile')) {
     try {
-      const name = prompt.slice('/skills-budget save-profile'.length).trim();
+      const name = normalizedPrompt.slice('/skills-budget save-profile'.length).trim();
       if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget save-profile <name>`' });
       const enabled = allSkillNames.filter(n => !disabledForProfiles.has(n));
       saveProfile(name, enabled);
@@ -313,7 +317,7 @@ if (isProfileCommand) {
     }
   }
 
-  if (prompt === '/skills-budget update-profile') {
+  if (normalizedPrompt === '/skills-budget update-profile') {
     try {
       const active = loadActiveProfile();
       if (!active) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ No active profile. Run `/skills-budget save-profile <name>` first.' });
@@ -325,9 +329,9 @@ if (isProfileCommand) {
     }
   }
 
-  if (prompt.startsWith('/skills-budget switch-profile')) {
+  if (normalizedPrompt.startsWith('/skills-budget switch-profile')) {
     try {
-      const name = prompt.slice('/skills-budget switch-profile'.length).trim();
+      const name = normalizedPrompt.slice('/skills-budget switch-profile'.length).trim();
       if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget switch-profile <name>`' });
       if (!loadProfile(name)) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ Profile **${name}** not found. Use \`/skills-budget list-profiles\` to see available profiles.` });
       applyProfile(name, allSkillNames);
@@ -338,9 +342,9 @@ if (isProfileCommand) {
     }
   }
 
-  if (prompt.startsWith('/skills-budget delete-profile')) {
+  if (normalizedPrompt.startsWith('/skills-budget delete-profile')) {
     try {
-      const name = prompt.slice('/skills-budget delete-profile'.length).trim();
+      const name = normalizedPrompt.slice('/skills-budget delete-profile'.length).trim();
       if (!name) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: '❌ Usage: `/skills-budget delete-profile <name>`' });
       const active = loadActiveProfile();
       if (name === active) respond({ handled: true, handledBy: 'skills-budget-guard', responseContent: `❌ Cannot delete the active profile **${name}**. Switch to another profile first.` });

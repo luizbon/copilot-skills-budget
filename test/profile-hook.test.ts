@@ -142,6 +142,21 @@ describe("profile hook", () => {
     });
   });
 
+  it("normalizes colon-style command /skills-budget:list-profiles to space style", async () => {
+    const homeDir = join(
+      repoRoot,
+      ".test-home",
+      `budget-check-colon-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
+    const result = runBudgetHook("/skills-budget:list-profiles", homeDir);
+
+    expect(result.status).toBe(0);
+    expect(result.error).toBeUndefined();
+    const out = JSON.parse(result.stdout);
+    expect(out).toMatchObject({ handled: true, handledBy: "skills-budget-guard" });
+    expect(out.responseContent).toMatch(/profile|Profile/);
+  });
+
   it("passes through unrelated prompts when profile bootstrap storage is broken", async () => {
     const homeDir = join(
       repoRoot,
@@ -200,6 +215,9 @@ describe("profile hook", () => {
     "/skills-budget save-profile",
     "/skills-budget switch-profile",
     "/skills-budget delete-profile",
+    "/skills-budget:save-profile",
+    "/skills-budget:switch-profile",
+    "/skills-budget:delete-profile",
   ])("handles missing-argument command: %s", async prompt => {
     const homeDir = join(
       repoRoot,
