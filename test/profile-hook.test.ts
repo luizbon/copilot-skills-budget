@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { chmodSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { afterEach, describe, expect, it } from "vitest";
@@ -63,6 +63,41 @@ describe("profile hook", () => {
       enabledSkills: ["alpha"],
     });
     expect(module.loadActiveProfile()).toBe("default");
+  });
+
+  it("records the active profile before a settings write failure", async () => {
+    const { homeDir, module } = await importProfileModule();
+    const settingsPath = join(homeDir, ".copilot", "settings.json");
+
+    module.saveProfile("profile-a", ["alpha"]);
+    module.saveProfile("profile-b", ["beta"]);
+    module.saveActiveProfile("profile-a");
+
+    mkdirSync(settingsPath, { recursive: true });
+
+    expect(() => module.applyProfile("profile-b", ["alpha", "beta"])).toThrow();
+    expect(module.loadActiveProfile()).toBe("profile-b");
+  });
+
+  it("preserves settings.json when the temporary atomic write fails", async () => {
+    const { homeDir, module } = await importProfileModule();
+    const copilotDir = join(homeDir, ".copilot");
+    const settingsPath = join(copilotDir, "settings.json");
+
+    module.saveProfile("profile-b", ["beta"]);
+    mkdirSync(copilotDir, { recursive: true });
+    writeFileSync(
+      settingsPath,
+      JSON.stringify({ disabledSkills: ["original"], other: true }, null, 2) + "\n",
+      "utf8"
+    );
+    mkdirSync(`${settingsPath}.tmp`, { recursive: true });
+
+    expect(() => module.applyProfile("profile-b", ["alpha", "beta"])).toThrow();
+    expect(JSON.parse(readFileSync(settingsPath, "utf8"))).toEqual({
+      disabledSkills: ["original"],
+      other: true,
+    });
   });
 
   it("surfaces directory permission errors from listProfiles", async () => {

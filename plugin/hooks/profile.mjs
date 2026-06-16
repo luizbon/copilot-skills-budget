@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, rmSync } from 'fs';
+import { readFileSync, writeFileSync, renameSync, mkdirSync, readdirSync, rmSync } from 'fs';
 import { join, resolve, sep } from 'path';
 import { homedir } from 'os';
 
@@ -76,12 +76,17 @@ export function applyProfile(profileName, allInstalledSkillNames) {
   const enabledSet = new Set(profile.enabledSkills);
   const disabledSkills = allInstalledSkillNames.filter(n => !enabledSet.has(n));
 
+  // Record active profile first — a failed settings write is recoverable; reversed order is not
+  saveActiveProfile(profileName);
+
   let settings = {};
   try {
     settings = JSON.parse(readFileSync(SETTINGS_PATH, 'utf8'));
   } catch (_) {}
 
   settings.disabledSkills = disabledSkills;
-  writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2) + '\n', 'utf8');
-  saveActiveProfile(profileName);
+  // Atomic write: write to temp then rename
+  const tmp = SETTINGS_PATH + '.tmp';
+  writeFileSync(tmp, JSON.stringify(settings, null, 2) + '\n', 'utf8');
+  renameSync(tmp, SETTINGS_PATH);
 }
